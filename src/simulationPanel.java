@@ -1,33 +1,40 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javafx.animation.AnimationTimer;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 
-public class simulationPanel extends JPanel {
+public class simulationPanel extends Pane {
     private particleEngine engine;
-    private Timer timer;
+    private Canvas canvas;
+    private AnimationTimer timer;
 
     public simulationPanel(particleEngine engine) {
         this.engine = engine;
-        this.setBackground(Color.BLACK);
 
+        canvas = new Canvas(800, 600); // Or bind to size
+        this.getChildren().add(canvas);
+        this.setStyle("-fx-background-color: black;");
 
-        timer = new Timer(1000 / 60, new ActionListener() {
+        timer = new AnimationTimer() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-
+            public void handle(long now) {
                 engine.updateParticles();
-                repaint();
+                draw();
             }
-        });
+        };
         timer.start();
+
+        // Optional: Bind canvas size to parent size
+        canvas.widthProperty().bind(this.widthProperty());
+        canvas.heightProperty().bind(this.heightProperty());
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
+    private void draw() {
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        engine.paint(g2d);
+        engine.paint(gc); // You must update particleEngine's paint() to use GraphicsContext
     }
 }

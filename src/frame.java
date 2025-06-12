@@ -81,7 +81,7 @@ public class frame extends JFrame {
 
                 // Update frame size
                 this.setSize(windowWidth, windowHeight);
-                simulationPanel.setPreferredSize(new Dimension(windowWidth, windowHeight));
+                //simulationPanel.setPreferredSize(new Dimension(windowWidth, windowHeight));
 
                 // Initialize the particle engine if it's null
                 if (particleEngine == null) {
@@ -112,7 +112,7 @@ public class frame extends JFrame {
 
 
                 // Add a panel to visualize the simulation
-                simulationPanel = new simulationPanel(particleEngine);
+                //simulationPanel = new simulationPanel(particleEngine);
                 this.add(simulationPanel, BorderLayout.CENTER);
                 this.revalidate();
                 this.repaint();

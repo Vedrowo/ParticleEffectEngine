@@ -1,4 +1,6 @@
-import java.awt.*;
+import javafx.scene.canvas.GraphicsContext;
+
+import javafx.scene.paint.Color;
 
 public class particle {
 
@@ -9,7 +11,6 @@ public class particle {
     public double tempVy = 0;
     public int maxX, maxY;
 
-    private final double amplitude = 1.5; // velocity range
     private final double frequency = 10.0; // Oscillations per second
 
     // Constructor to initialize particle
@@ -20,7 +21,7 @@ public class particle {
         this.y = y;
 
         this.currentLifetime = 0;
-        this.alpha = 255;
+        this.alpha = 1;
         this.startingX = x;
         this.startingY = y;
 
@@ -30,6 +31,8 @@ public class particle {
         double time = System.currentTimeMillis() / 1000.0; // Time in seconds
         double phase = Math.random() * 2 * Math.PI; // Random phase between 0 and 2π
 
+        // velocity range
+        double amplitude = 1.5;
         vx = amplitude * Math.sin(2 * Math.PI * frequency * time + phase);
         vy = 0 - Math.abs(Math.sin(angle) * speed);
         this.startingVX = vx;
@@ -59,7 +62,10 @@ public class particle {
         this.startingSize = size;
     }
 
-
+    public void setBounds(int width, int height) {
+        this.maxX = width;
+        this.maxY = height;
+    }
 
     // Update particle movement
     public void movement() {
@@ -83,7 +89,7 @@ public class particle {
 
         // Adjust size based on age
         size = (age < 0.2) ? size + 0.1 : size - 0.3;
-        alpha = 255 * (1 - Math.pow(age, 2));
+        alpha = 1 * (1 - Math.pow(age, 2));
         color = getColorBasedOnLifetime(currentLifetime, lifetime, (int) alpha);
     }
 
@@ -96,13 +102,12 @@ public class particle {
     private Color getColorBasedOnLifetime(double currentLifetime, double lifetime, int alpha) {
         age = Math.max(0, Math.min(1, currentLifetime / lifetime));  // Ensure age is between 0 and 1
 
-        int r = 255;
-        int g = (int) (255 * (1 - 2 * age));
-        int b = (int) (255 * (1 - 10 * age));
+        double r = 1.0;
+        double g = (1 - 2 * age);
+        double b = (1 - 10 * age);
 
-        r = Math.max(0, Math.min(255, r));
-        g = Math.max(0, Math.min(255, g));
-        b = Math.max(0, Math.min(255, b));
+        g = Math.max(0, Math.min(1, g));
+        b = Math.max(0, Math.min(1, b));
 
         return new Color(r, g, b, alpha);
     }
@@ -114,19 +119,44 @@ public class particle {
         y = startingY;
         vx = startingVX;
         vy = startingVY;
-        alpha = 255;
+        alpha = 1;
         size = startingSize;
         tempVy = 0;
     }
 
     // Draw particle
-    public void draw(Graphics2D g2d) {
-        // Draw the glowing effect by drawing a larger circle with transparency around the particle
-        g2d.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), (int)(alpha * 0.5))); // Slight transparency for glow
-        g2d.fillOval((int) x - (int)(size * 0.5), (int) y - (int)(size * 0.5), (int)(size * 1.5), (int)(size * 1.5)); // Larger size for glow
+    public void draw(GraphicsContext gc) {
+        // Draw the glowing effect
+        Color fxGlowColor = Color.rgb(
+                (int) (color.getRed() * 255),
+                (int) (color.getGreen() * 255),
+                (int) (color.getBlue() * 255),
+                alpha
+        );
 
-        // Draw the core particle with solid color
-        g2d.setColor(color);
-        g2d.fillOval((int) x - (int)(size / 2), (int) y - (int)(size / 2), (int) size, (int) size);
+        gc.setFill(fxGlowColor);
+        gc.fillOval(
+                x - size * 0.5,
+                y - size * 0.5,
+                size * 1.5,
+                size * 1.5
+        );
+
+        // Draw the core particle
+        Color fxColor = Color.rgb(
+                (int) (color.getRed() * 255),
+                (int) (color.getGreen() * 255),
+                (int) (color.getBlue() * 255),
+                alpha
+        );
+
+        gc.setFill(fxColor);
+        gc.fillOval(
+                x - size / 2,
+                y - size / 2,
+                size,
+                size
+        );
     }
+
 }

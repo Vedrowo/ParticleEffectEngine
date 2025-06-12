@@ -1,15 +1,15 @@
+import javafx.scene.canvas.GraphicsContext;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class particleEngine {
 
-    private CopyOnWriteArrayList<particle> particles = new CopyOnWriteArrayList<>();
-    private HashMap<Point, ArrayList<particle>> particleMap = new HashMap<>();
+    private final CopyOnWriteArrayList<particle> particles = new CopyOnWriteArrayList<>();
+    private final HashMap<Point, ArrayList<particle>> particleMap = new HashMap<>();
     private final double cellSize = 50;
-    private final double radius = cellSize / 4;
     int count = 0;
     int numParticles;
     double x, y;
@@ -92,6 +92,7 @@ public class particleEngine {
         double dx = Math.abs(p1.x - p2.x);
         double dy = Math.abs(p1.y - p2.y);
         double distanceSquared = Math.sqrt(dx * dx + dy * dy);
+        double radius = cellSize / 4;
         return distanceSquared < radius;
     }
 
@@ -108,7 +109,7 @@ public class particleEngine {
     }
 
     // Paint particles to the screen
-    public void paint(Graphics2D g2d) {
+    public void paint(GraphicsContext g2d) {
         for (particle particle : particles) {
             particle.draw(g2d);
         }
@@ -118,6 +119,13 @@ public class particleEngine {
     public void addParticles(double x, double y, int maxX, int maxY) {
         particles.add(new particle(x, y, maxX, maxY));
         count++;
+    }
+
+    public void setBounds(int width, int height) {
+
+        for (particle p : particles) {
+            p.setBounds(width, height);
+        }
     }
 
     public boolean done(){
