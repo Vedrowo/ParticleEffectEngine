@@ -1,8 +1,5 @@
-import javafx.scene.canvas.GraphicsContext;
-
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -113,7 +110,7 @@ public class particleEngineUtil {
 
     public static void makeArrList(ArrayList<ArrayList<particle>> ArrList) {
         for (int i = 0; i < 7; i++){
-            ArrList.add(new ArrayList<particle>());
+            ArrList.add(new ArrayList<>());
         }
     }
 

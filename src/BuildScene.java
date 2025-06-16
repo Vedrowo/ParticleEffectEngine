@@ -2,15 +2,15 @@ import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 public class BuildScene {
+
+    public Label runtime;
+
     private particleEngine engine;
 
     public Button startButton;
@@ -54,6 +54,7 @@ public class BuildScene {
 
     private int particlesAdded = 0;
     private int numParticles;
+    private boolean finishReported = false;
 
     private AnimationTimer renderLoop;
 
@@ -61,6 +62,8 @@ public class BuildScene {
     @FXML
     private void startSimulation() {
         try {
+            finishReported = false;
+            long startTime = System.nanoTime();
 
             numParticles = Integer.parseInt(particleCountField.getText());
             int width = Integer.parseInt(windowWidthField.getText());
@@ -150,7 +153,13 @@ public class BuildScene {
                     public void handle(long now) {
                         clearCanvas(gc);
                         engine.updateParticles();
-                        engine.paint(gc);
+                        boolean drawn = engine.paint(gc);
+                        if (!drawn && !finishReported) {
+                            finishReported = true;
+                            long end = System.nanoTime();
+                            long elapsedNanos = end - startTime;
+                            runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
+                        }
                     }
                 };
             } else if (concurrencyType.equalsIgnoreCase("Parallel")) {
@@ -159,7 +168,13 @@ public class BuildScene {
                     public void handle(long now) {
                         clearCanvas(gc);
                         engine.updateParticlesParallel();
-                        engine.paintParallel(gc);
+                        boolean drawn = engine.paintParallel(gc);
+                        if (!drawn && !finishReported) {
+                            finishReported = true;
+                            long end = System.nanoTime();
+                            long elapsedNanos = end - startTime;
+                            runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
+                        }
                     }
                 };
             }
@@ -186,4 +201,5 @@ public class BuildScene {
         alert.setContentText("Please enter valid numbers.");
         alert.show();
     }
+
 }

@@ -2,7 +2,6 @@ import javafx.scene.canvas.GraphicsContext;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,18 +24,26 @@ public class particleEngine {
     }
 
     // Paint particles to the screen
-    public void paint(GraphicsContext g2d) {
+    public boolean paint(GraphicsContext g2d) {
+        boolean didDrawSomething = false;
+
         for (particle particle : particles) {
             particle.draw(g2d);
+            didDrawSomething = true;
         }
+        return didDrawSomething;
     }
 
-    public void paintParallel(GraphicsContext gc) {
+    public boolean paintParallel(GraphicsContext gc) {
+        boolean didDrawSomething = false;
+
         for (ArrayList<particle> particles : ArrList) {
             for (particle particle : particles) {
                 particle.draw(gc);
+                didDrawSomething = true;
             }
         }
+        return didDrawSomething;
     }
 
     public void updateParticles(){
@@ -72,7 +79,6 @@ public class particleEngine {
     public void setBounds(int width, int height){
         particleEngineUtil.setBounds(width, height, particles);
     }
-
 
     public void resetEngine(double x, double y, int numParticles) {
         this.numParticles = numParticles;

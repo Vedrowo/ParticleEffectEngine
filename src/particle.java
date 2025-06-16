@@ -11,8 +11,6 @@ public class particle {
     public double tempVy = 0;
     public int maxX, maxY;
 
-    private final double frequency = 10.0; // Oscillations per second
-
     // Constructor to initialize particle
     public particle(double x, double y, int maxX, int maxY) {
         this.maxX = maxX;
@@ -33,6 +31,8 @@ public class particle {
 
         // velocity range
         double amplitude = 1.5;
+        // Oscillations per second
+        double frequency = 10.0;
         vx = amplitude * Math.sin(2 * Math.PI * frequency * time + phase);
         vy = 0 - Math.abs(Math.sin(angle) * speed);
         this.startingVX = vx;
