@@ -68,6 +68,7 @@ public class BuildScene {
             int x = Integer.parseInt(xField.getText());
             int y = Integer.parseInt(yField.getText());
             String mode = myChoiceBox.getValue();
+            String concurrencyType = myChoiceBox1.getValue();
 
             canvas.setPrefWidth(width);
             canvas.setPrefHeight(height);
@@ -75,7 +76,6 @@ public class BuildScene {
             stage.setHeight(height);
 
             resizeCanvas(width-215, height-275);
-            System.out.println(width + " " + height);
 
             if (engine == null) {
                 engine = new particleEngine(x, y, numParticles);
@@ -86,44 +86,94 @@ public class BuildScene {
             engine.setBounds(width, height);
 
             if (mode.equalsIgnoreCase("Burst")) {
-                for (int i = 0; i < numParticles; i++) {
-                    engine.addParticles(x, y, (int) drawingCanvas.getWidth(), (int) drawingCanvas.getHeight());
+                if(concurrencyType.equalsIgnoreCase("Sequential")) {
+                    for (int i = 0; i < numParticles; i++) {
+                        engine.addParticles(x, y, width-215, height);
+                    }
+                }else if (concurrencyType.equalsIgnoreCase("Parallel")) {
+                    for (int i = 0; i < numParticles; i++) {
+                        engine.addParticlesParallel(x, y, width-215, height);
+                    }
                 }
+
             } else {
                 particlesAdded = 0;
-                AnimationTimer particleAdder = new AnimationTimer() {
-                    @Override
-                    public void handle(long now) {
-                        int addCount = 10;
-                        for (int i = 0; i < addCount && particlesAdded < numParticles; i++) {
-                            engine.addParticles(x, y, width, height);
-                            particlesAdded++;
+                AnimationTimer particleAdder;
+
+                if (concurrencyType.equals("Sequential")) {
+                    particleAdder = new AnimationTimer() {
+                        @Override
+                        public void handle(long now) {
+                            int addCount = 10;
+                            for (int i = 0; i < addCount && particlesAdded < numParticles; i++) {
+                                engine.addParticles(x, y, width-215, height);
+                                particlesAdded++;
+                            }
+                            if (particlesAdded >= numParticles) stop();
                         }
-                        if (particlesAdded >= numParticles) {
-                            stop();
+                    };
+                } else if (concurrencyType.equals("Parallel")) {
+                    particleAdder = new AnimationTimer() {
+                        @Override
+                        public void handle(long now) {
+                            int addCount = 10;
+                            for (int i = 0; i < addCount && particlesAdded < numParticles; i++) {
+                                engine.addParticlesParallel(x, y, width-215, height);
+                                particlesAdded++;
+                            }
+                            if (particlesAdded >= numParticles) stop();
                         }
-                    }
-                };
+                    };
+                } else {
+                    //prep for distributed
+                    particleAdder = new AnimationTimer() {
+                        @Override
+                        public void handle(long now) {
+
+                        }
+                    };
+                }
+
                 particleAdder.start();
             }
 
-            if (renderLoop == null) {
-                GraphicsContext gc = drawingCanvas.getGraphicsContext2D();
+            if (renderLoop != null) {
+                renderLoop.stop();
+                renderLoop = null;
+            }
+
+            GraphicsContext gc = drawingCanvas.getGraphicsContext2D();
+
+            if(concurrencyType.equalsIgnoreCase("Sequential")) {
                 renderLoop = new AnimationTimer() {
                     @Override
                     public void handle(long now) {
-                        gc.setFill(Color.BLACK);
-                        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                        clearCanvas(gc);
                         engine.updateParticles();
                         engine.paint(gc);
                     }
                 };
-                renderLoop.start();
+            } else if (concurrencyType.equalsIgnoreCase("Parallel")) {
+                renderLoop = new AnimationTimer() {
+                    @Override
+                    public void handle(long now) {
+                        clearCanvas(gc);
+                        engine.updateParticlesParallel();
+                        engine.paintParallel(gc);
+                    }
+                };
             }
+
+            renderLoop.start();
 
         } catch (NumberFormatException e) {
             showAlert();
         }
+    }
+
+    private void clearCanvas(GraphicsContext gc) {
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
     }
 
     private void resizeCanvas(double width, double height) {

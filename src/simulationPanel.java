@@ -5,6 +5,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 
 public class simulationPanel extends Pane {
+    /*
     private particleEngine engine;
     private Canvas canvas;
     private AnimationTimer timer;
@@ -36,5 +37,5 @@ public class simulationPanel extends Pane {
         gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
         engine.paint(gc); // You must update particleEngine's paint() to use GraphicsContext
-    }
+    }*/
 }

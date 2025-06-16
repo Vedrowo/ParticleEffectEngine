@@ -3,7 +3,7 @@ import java.awt.*;
 import java.util.Objects;
 
 public class frame extends JFrame {
-    private JTextField particleCountField, windowWidthField, windowHeightField, xField, yField, mode;
+   /* private JTextField particleCountField, windowWidthField, windowHeightField, xField, yField, mode;
     private JPanel simulationPanel;
     private particleEngine particleEngine;
     private int windowWidth = 800;
@@ -123,5 +123,5 @@ public class frame extends JFrame {
         });
 
         return inputPanel;
-    }
+    }*/
 }
