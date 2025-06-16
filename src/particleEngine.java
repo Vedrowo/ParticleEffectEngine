@@ -15,7 +15,8 @@ public class particleEngine {
     AtomicInteger nextListIndex = new AtomicInteger(0);
     AtomicInteger count = new AtomicInteger(0);
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(8);
+    int maxThreads = Runtime.getRuntime().availableProcessors();
+    private final ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
 
     public particleEngine(double x, double y, int numParticles) {
         this.numParticles = numParticles;
