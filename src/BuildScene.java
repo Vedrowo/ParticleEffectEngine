@@ -90,13 +90,10 @@ public class BuildScene {
 
             if (mode.equalsIgnoreCase("Burst")) {
                 if(concurrencyType.equalsIgnoreCase("Sequential")) {
-                    for (int i = 0; i < numParticles; i++) {
-                        engine.addParticles(x, y, width-215, height);
-                    }
-                }else if (concurrencyType.equalsIgnoreCase("Parallel")) {
-                    for (int i = 0; i < numParticles; i++) {
-                        engine.addParticlesParallel(x, y, width-215, height);
-                    }
+                    engine.addParticles(x, y, width-215, height, numParticles);
+                }
+                else if (concurrencyType.equalsIgnoreCase("Parallel")) {
+                        engine.addParticlesParallel(x, y, width-215, height, numParticles);
                 }
 
             } else {
@@ -108,9 +105,9 @@ public class BuildScene {
                         @Override
                         public void handle(long now) {
                             int addCount = 10;
-                            for (int i = 0; i < addCount && particlesAdded < numParticles; i++) {
-                                engine.addParticles(x, y, width-215, height);
-                                particlesAdded++;
+                            if(particlesAdded < numParticles) {
+                                engine.addParticles(x, y, width-215, height, addCount);
+                                particlesAdded+=addCount;
                             }
                             if (particlesAdded >= numParticles) stop();
                         }
@@ -120,9 +117,9 @@ public class BuildScene {
                         @Override
                         public void handle(long now) {
                             int addCount = 10;
-                            for (int i = 0; i < addCount && particlesAdded < numParticles; i++) {
-                                engine.addParticlesParallel(x, y, width-215, height);
-                                particlesAdded++;
+                            if(particlesAdded < numParticles) {
+                                engine.addParticlesParallel(x, y, width-215, height, addCount);
+                                particlesAdded+=addCount;
                             }
                             if (particlesAdded >= numParticles) stop();
                         }

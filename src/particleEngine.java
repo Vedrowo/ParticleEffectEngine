@@ -7,16 +7,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class particleEngine {
 
-    private final ArrayList<particle> particles = new ArrayList<>();
-    private final ArrayList<ArrayList<particle>> ArrList = new ArrayList<>();
-    private final ConcurrentHashMap<Point, ArrayList<particle>> particleMap = new ConcurrentHashMap<>();
+    private final ConcurrentLinkedQueue<particle> particles = new ConcurrentLinkedQueue<>();
+    private final ArrayList<ConcurrentLinkedQueue<particle>> ArrList = new ArrayList<>();
+    private final ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> particleMap = new ConcurrentHashMap<>();
     int numParticles;
     double x, y;
     AtomicInteger nextListIndex = new AtomicInteger(0);
     AtomicInteger count = new AtomicInteger(0);
+    AtomicInteger localCount = new AtomicInteger(0);
 
     int maxThreads = Runtime.getRuntime().availableProcessors();
     private final ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
+    int batchSize = numParticles / maxThreads;
 
     public particleEngine(double x, double y, int numParticles) {
         this.numParticles = numParticles;
@@ -38,7 +40,7 @@ public class particleEngine {
     public boolean paintParallel(GraphicsContext gc) {
         boolean didDrawSomething = false;
 
-        for (ArrayList<particle> particles : ArrList) {
+        for (ConcurrentLinkedQueue<particle> particles : ArrList) {
             for (particle particle : particles) {
                 particle.draw(gc);
                 didDrawSomething = true;
@@ -54,7 +56,7 @@ public class particleEngine {
     public void updateParticlesParallel() {
         ArrayList<Callable<Void>> tasks = new ArrayList<>();
 
-        for (ArrayList<particle> partition : ArrList) {
+        for (ConcurrentLinkedQueue<particle> partition : ArrList) {
             tasks.add(() -> {
                 particleEngineUtil.updateParticles(particleMap, partition, numParticles, count);
                 return null;
@@ -69,12 +71,12 @@ public class particleEngine {
         }
     }
 
-    public void addParticles(double x, double y, int maxX, int maxY){
-        particleEngineUtil.addParticles(x, y, maxX, maxY, particles, count);
+    public void addParticles(double x, double y, int maxX, int maxY, int addCount){
+        particleEngineUtil.addParticles(x, y, maxX, maxY, particles, count, addCount);
     }
 
-    public void addParticlesParallel(double x, double y, int maxX, int maxY){
-        particleEngineUtil.addParticlesParallel(x, y, maxX, maxY, count, ArrList, nextListIndex);
+    public void addParticlesParallel(double x, double y, int maxX, int maxY, int addCount){
+        particleEngineUtil.addParticlesParallel(x, y, maxX, maxY, count, ArrList, nextListIndex, batchSize, localCount, addCount);
     }
 
     public void setBounds(int width, int height){
