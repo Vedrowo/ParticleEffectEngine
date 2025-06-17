@@ -1,8 +1,9 @@
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.awt.Point;
+import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class particleEngineUtil {
@@ -18,14 +19,13 @@ public class particleEngineUtil {
     }
 
     // Update particles and manage their state
-    public static void updateParticles(ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> map, ConcurrentLinkedQueue<particle> particles, int numParticles, AtomicInteger count) {
-        map.clear();
+    public static Map<Point, List<particle>> updateParticles(Map<Point, List<particle>> map, ConcurrentLinkedQueue<particle> particles, int numParticles, AtomicInteger count) {
+        Map<Point, List<particle>> localMap = new HashMap<>();
 
         Iterator<particle> iterator = particles.iterator();
 
         while (iterator.hasNext()) {
             particle particle = iterator.next();
-            //addToMap(map, particle);
 
             if (!particle.isAlive() && numParticles > count.get()) {
                 particle.reset();
@@ -37,11 +37,15 @@ public class particleEngineUtil {
             }
 
             if (particle.age > 0.8) {
-                //handleCollisions(particle, map);
+                handleCollisions(particle, map);
             }
 
             particle.movement();
+
+            Point cell = getCell(particle.x, particle.y);
+            localMap.computeIfAbsent(cell, _ -> new ArrayList<>()).add(particle);
         }
+        return localMap;
     }
 
     // Add particle to map based on cell position
@@ -52,7 +56,7 @@ public class particleEngineUtil {
     }
 
     // Handle collisions between particles
-    private static void handleCollisions(particle p, ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> map) {
+    private static void handleCollisions(particle p, Map<Point, List<particle>> map) {
         Point cell = particleEngineUtil.getCell(p.x, p.y);
 
         // Check the current cell and neighboring cells
@@ -87,7 +91,6 @@ public class particleEngineUtil {
         p2.tempVy = avgVy;
     }
 
-    // Add a new particle
     public static void addParticles(double x, double y, int maxX, int maxY, ConcurrentLinkedQueue<particle> particles, AtomicInteger count, int addCount) {
         for(int i = 0; i < addCount; i++) {
             particles.add(new particle(x, y, maxX, maxY));
@@ -95,9 +98,11 @@ public class particleEngineUtil {
         count.addAndGet(addCount);
     }
 
-    public static void addParticlesParallel(double x, double y, int maxX, int maxY,
-                                            AtomicInteger count, ArrayList<ConcurrentLinkedQueue<particle>> ArrList,
-                                            AtomicInteger nextListIndex, int batchSize, AtomicInteger localCounter, int addCount
+    public static void addParticlesParallel(
+            double x, double y, int maxX, int maxY,
+            AtomicInteger count,
+            ArrayList<ConcurrentLinkedQueue<particle>> ArrList,
+            AtomicInteger nextListIndex, int batchSize, AtomicInteger localCounter, int addCount
     ) {
         if (ArrList.isEmpty()) {
             makeArrList(ArrList);
@@ -111,11 +116,52 @@ public class particleEngineUtil {
 
         count.addAndGet(addCount);
 
-        int counter = localCounter.incrementAndGet();
+        int counter = localCounter.addAndGet(addCount);
 
         if(counter >= batchSize) {
             nextListIndex.updateAndGet(i -> (i + 1) % ArrList.size());
             localCounter.set(0);
+        }
+    }
+
+    public static void addParticlesParallelBurst(
+            double x, double y, int maxX, int maxY,
+            AtomicInteger count,
+            ArrayList<ConcurrentLinkedQueue<particle>> ArrList,
+            ExecutorService executor,
+            int addCount
+    ) {
+        if (ArrList.isEmpty()) {
+            makeArrList(ArrList);
+        }
+
+        int numThreads = ArrList.size();
+        int particlesPerThread = addCount / numThreads;
+        int remaining = addCount % numThreads;
+
+        List<Callable<Void>> tasks = new ArrayList<>();
+
+        for (int i = 0; i < numThreads; i++) {
+            int taskIndex = i;
+            int taskParticleCount = particlesPerThread + (i < remaining ? 1 : 0);
+
+            tasks.add(() -> {
+
+                List<particle> localParticles = new ArrayList<>(taskParticleCount);
+                for (int j = 0; j < taskParticleCount; j++) {
+                    localParticles.add(new particle(x, y, maxX, maxY));
+                }
+                ArrList.get(taskIndex).addAll(localParticles);
+                return null;
+            });
+        }
+
+        try {
+            executor.invokeAll(tasks);
+            count.addAndGet(addCount);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            e.printStackTrace();
         }
     }
 

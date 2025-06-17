@@ -10,13 +10,16 @@ public class particle {
     public Color color;
     public double tempVy = 0;
     public int maxX, maxY;
+    private double xOffset, yOffset;
 
     // Constructor to initialize particle
     public particle(double x, double y, int maxX, int maxY) {
+        xOffset = (Math.random() - 0.5) * 70;
+        yOffset = (Math.random() - 0.5) * 20;
         this.maxX = maxX;
         this.maxY = maxY;
-        this.x = x;
-        this.y = y;
+        this.x = x + xOffset;
+        this.y = y + yOffset;
 
         this.currentLifetime = 0;
         this.alpha = 1;
@@ -115,8 +118,8 @@ public class particle {
     // Reset particle to its initial state
     public void reset() {
         currentLifetime = 0;
-        x = startingX;
-        y = startingY;
+        x = startingX + xOffset;
+        y = startingY + yOffset;
         vx = startingVX;
         vy = startingVY;
         alpha = 1;

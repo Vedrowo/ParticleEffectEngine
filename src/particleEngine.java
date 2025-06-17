@@ -1,7 +1,8 @@
 import javafx.scene.canvas.GraphicsContext;
 
+import java.util.*;
 import java.awt.*;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -9,7 +10,7 @@ public class particleEngine {
 
     private final ConcurrentLinkedQueue<particle> particles = new ConcurrentLinkedQueue<>();
     private final ArrayList<ConcurrentLinkedQueue<particle>> ArrList = new ArrayList<>();
-    private final ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> particleMap = new ConcurrentHashMap<>();
+    private final Map<Point, List<particle>> particleMap = new HashMap<>();
     int numParticles;
     double x, y;
     AtomicInteger nextListIndex = new AtomicInteger(0);
@@ -18,12 +19,13 @@ public class particleEngine {
 
     int maxThreads = Runtime.getRuntime().availableProcessors();
     private final ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
-    int batchSize = numParticles / maxThreads;
+    int batchSize;
 
     public particleEngine(double x, double y, int numParticles) {
         this.numParticles = numParticles;
         this.x = x;
         this.y = y;
+        this.batchSize = numParticles / maxThreads;
     }
 
     // Paint particles to the screen
@@ -54,20 +56,43 @@ public class particleEngine {
     }
 
     public void updateParticlesParallel() {
-        ArrayList<Callable<Void>> tasks = new ArrayList<>();
+
+        ArrayList<Callable<Map<Point, List<particle>>>> tasks = new ArrayList<>();
 
         for (ConcurrentLinkedQueue<particle> partition : ArrList) {
-            tasks.add(() -> {
-                particleEngineUtil.updateParticles(particleMap, partition, numParticles, count);
-                return null;
-            });
+            tasks.add(() -> particleEngineUtil.updateParticles(particleMap, partition, numParticles, count));
         }
 
+        List<Map<Point, List<particle>>> localMaps = new ArrayList<>();
         try {
-            executor.invokeAll(tasks);
+            List<Future<Map<Point, List<particle>>>> futures = executor.invokeAll(tasks);
+
+            for (Future<Map<Point, List<particle>>> future : futures) {
+                localMaps.add(future.get());
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             e.printStackTrace();
+            return;
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        mergeLocalMaps(localMaps);
+    }
+
+
+    public void mergeLocalMaps(List<Map<Point, List<particle>>> localMaps) {
+        particleMap.clear();
+
+        for (Map<Point, List<particle>> localMap : localMaps) {
+            for (Map.Entry<Point, List<particle>> entry : localMap.entrySet()) {
+                Point cell = entry.getKey();
+                List<particle> localParticles = entry.getValue();
+
+                particleMap.computeIfAbsent(cell, k -> new ArrayList<>()).addAll(localParticles);
+            }
         }
     }
 
@@ -77,6 +102,10 @@ public class particleEngine {
 
     public void addParticlesParallel(double x, double y, int maxX, int maxY, int addCount){
         particleEngineUtil.addParticlesParallel(x, y, maxX, maxY, count, ArrList, nextListIndex, batchSize, localCount, addCount);
+    }
+
+    public void addParticlesParallelBurst(double x, double y, int maxX, int maxY, int addCount){
+        particleEngineUtil.addParticlesParallelBurst(x, y, maxX, maxY, count, ArrList, executor, addCount);
     }
 
     public void setBounds(int width, int height){

@@ -93,7 +93,7 @@ public class BuildScene {
                     engine.addParticles(x, y, width-215, height, numParticles);
                 }
                 else if (concurrencyType.equalsIgnoreCase("Parallel")) {
-                        engine.addParticlesParallel(x, y, width-215, height, numParticles);
+                    engine.addParticlesParallelBurst(x, y, width-215, height, numParticles);
                 }
 
             } else {
@@ -156,6 +156,7 @@ public class BuildScene {
                             long end = System.nanoTime();
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
+                            renderLoop.stop();
                         }
                     }
                 };
@@ -164,13 +165,17 @@ public class BuildScene {
                     @Override
                     public void handle(long now) {
                         clearCanvas(gc);
+                        System.out.println("before calling update particles " + System.currentTimeMillis() );
                         engine.updateParticlesParallel();
+                        System.out.println("called update particles " + System.currentTimeMillis() );
                         boolean drawn = engine.paintParallel(gc);
+                        System.out.println("called draw particles " + System.currentTimeMillis() );
                         if (!drawn && !finishReported) {
                             finishReported = true;
                             long end = System.nanoTime();
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
+                            renderLoop.stop();
                         }
                     }
                 };
