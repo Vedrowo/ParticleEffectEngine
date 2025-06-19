@@ -19,41 +19,43 @@ public class particleEngineUtil {
     }
 
     // Update particles and manage their state
-    public static Map<Point, List<particle>> updateParticles(Map<Point, List<particle>> map, ConcurrentLinkedQueue<particle> particles, int numParticles, AtomicInteger count) {
+    public static Map<Point, List<particle>> updateParticles(Map<Point, List<particle>> map, ArrayList<particle> particles, int numParticles, AtomicInteger count) {
         Map<Point, List<particle>> localMap = new HashMap<>();
 
-        Iterator<particle> iterator = particles.iterator();
-
-        while (iterator.hasNext()) {
-            particle particle = iterator.next();
-
+        for (particle particle : particles) {
             if (!particle.isAlive() && numParticles > count.get()) {
                 particle.reset();
                 count.incrementAndGet();
             }
+            /*
             if(!particle.isAlive()) {
-                iterator.remove();
+                //iterator.remove();
                 continue;
             }
+
+             */
 
             if (particle.age > 0.8) {
                 handleCollisions(particle, map);
             }
 
-            particle.movement();
+            if (particle.isAlive()) {
+                particle.movement();
+                Point cell = getCell(particle.x, particle.y);
+                localMap.computeIfAbsent(cell, _ -> new ArrayList<>()).add(particle);
+            }
 
-            Point cell = getCell(particle.x, particle.y);
-            localMap.computeIfAbsent(cell, _ -> new ArrayList<>()).add(particle);
+
         }
         return localMap;
     }
 
-    // Add particle to map based on cell position
+    /*
     private static void addToMap(ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> map, particle p) {
         Point cell = getCell(p.x, p.y);
         map.putIfAbsent(cell, new ConcurrentLinkedQueue<>());
         map.get(cell).add(p);
-    }
+    }*/
 
     // Handle collisions between particles
     private static void handleCollisions(particle p, Map<Point, List<particle>> map) {
@@ -91,7 +93,7 @@ public class particleEngineUtil {
         p2.tempVy = avgVy;
     }
 
-    public static void addParticles(double x, double y, int maxX, int maxY, ConcurrentLinkedQueue<particle> particles, AtomicInteger count, int addCount) {
+    public static void addParticles(double x, double y, int maxX, int maxY, ArrayList<particle> particles, AtomicInteger count, int addCount) {
         for(int i = 0; i < addCount; i++) {
             particles.add(new particle(x, y, maxX, maxY));
         }
@@ -101,7 +103,7 @@ public class particleEngineUtil {
     public static void addParticlesParallel(
             double x, double y, int maxX, int maxY,
             AtomicInteger count,
-            ArrayList<ConcurrentLinkedQueue<particle>> ArrList,
+            ArrayList<ArrayList<particle>> ArrList,
             AtomicInteger nextListIndex, int batchSize, AtomicInteger localCounter, int addCount
     ) {
         if (ArrList.isEmpty()) {
@@ -127,7 +129,7 @@ public class particleEngineUtil {
     public static void addParticlesParallelBurst(
             double x, double y, int maxX, int maxY,
             AtomicInteger count,
-            ArrayList<ConcurrentLinkedQueue<particle>> ArrList,
+            ArrayList<ArrayList<particle>> ArrList,
             ExecutorService executor,
             int addCount
     ) {
@@ -165,14 +167,14 @@ public class particleEngineUtil {
         }
     }
 
-    public static void makeArrList(ArrayList<ConcurrentLinkedQueue<particle>> ArrList) {
+    public static void makeArrList(ArrayList<ArrayList<particle>> ArrList) {
         for (int i = 0; i < 7; i++){
-            ArrList.add(new ConcurrentLinkedQueue<>());
+            ArrList.add(new ArrayList<>());
         }
     }
 
 
-    public static void setBounds(int width, int height, ConcurrentLinkedQueue<particle> particles) {
+    public static void setBounds(int width, int height, ArrayList<particle> particles) {
         for (particle p : particles) {
             p.setBounds(width, height);
         }

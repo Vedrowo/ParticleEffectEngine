@@ -151,8 +151,7 @@ public class BuildScene {
                         clearCanvas(gc);
                         engine.updateParticles();
                         boolean drawn = engine.paint(gc);
-                        if (!drawn && !finishReported) {
-                            finishReported = true;
+                        if (!drawn) {
                             long end = System.nanoTime();
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
@@ -165,13 +164,9 @@ public class BuildScene {
                     @Override
                     public void handle(long now) {
                         clearCanvas(gc);
-                        System.out.println("before calling update particles " + System.currentTimeMillis() );
                         engine.updateParticlesParallel();
-                        System.out.println("called update particles " + System.currentTimeMillis() );
                         boolean drawn = engine.paintParallel(gc);
-                        System.out.println("called draw particles " + System.currentTimeMillis() );
-                        if (!drawn && !finishReported) {
-                            finishReported = true;
+                        if (!drawn) {
                             long end = System.nanoTime();
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");

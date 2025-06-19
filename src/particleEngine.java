@@ -8,8 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class particleEngine {
 
-    private final ConcurrentLinkedQueue<particle> particles = new ConcurrentLinkedQueue<>();
-    private final ArrayList<ConcurrentLinkedQueue<particle>> ArrList = new ArrayList<>();
+    private final ArrayList<particle> particles = new ArrayList<>();
+    private final ArrayList<ArrayList<particle>> ArrList = new ArrayList<>();
     private final Map<Point, List<particle>> particleMap = new HashMap<>();
     int numParticles;
     double x, y;
@@ -33,8 +33,10 @@ public class particleEngine {
         boolean didDrawSomething = false;
 
         for (particle particle : particles) {
-            particle.draw(g2d);
-            didDrawSomething = true;
+            if(particle.isAlive()){
+                particle.draw(g2d);
+                didDrawSomething = true;
+            }
         }
         return didDrawSomething;
     }
@@ -42,10 +44,12 @@ public class particleEngine {
     public boolean paintParallel(GraphicsContext gc) {
         boolean didDrawSomething = false;
 
-        for (ConcurrentLinkedQueue<particle> particles : ArrList) {
+        for (ArrayList<particle> particles : ArrList) {
             for (particle particle : particles) {
-                particle.draw(gc);
-                didDrawSomething = true;
+                if(particle.isAlive()){
+                    particle.draw(gc);
+                    didDrawSomething = true;
+                }
             }
         }
         return didDrawSomething;
@@ -59,7 +63,7 @@ public class particleEngine {
 
         ArrayList<Callable<Map<Point, List<particle>>>> tasks = new ArrayList<>();
 
-        for (ConcurrentLinkedQueue<particle> partition : ArrList) {
+        for (ArrayList<particle> partition : ArrList) {
             tasks.add(() -> particleEngineUtil.updateParticles(particleMap, partition, numParticles, count));
         }
 
@@ -91,7 +95,7 @@ public class particleEngine {
                 Point cell = entry.getKey();
                 List<particle> localParticles = entry.getValue();
 
-                particleMap.computeIfAbsent(cell, k -> new ArrayList<>()).addAll(localParticles);
+                particleMap.computeIfAbsent(cell, _ -> new ArrayList<>()).addAll(localParticles);
             }
         }
     }
@@ -114,8 +118,15 @@ public class particleEngine {
 
     public void resetEngine(double x, double y, int numParticles) {
         this.numParticles = numParticles;
-        count.set(0);
         this.x = x;
         this.y = y;
+        count.set(0);
+        localCount.set(0);
+        nextListIndex.set(0);
+        particles.clear();
+        particleMap.clear();
+        for (ArrayList<particle> list : ArrList) {
+            list.clear();
+        }
     }
 }
