@@ -11,6 +11,7 @@ public class particle {
     public double tempVy = 0;
     public int maxX, maxY;
     private double xOffset, yOffset;
+    public boolean mergedThisFrame = false;
 
     // Constructor to initialize particle
     public particle(double x, double y, int maxX, int maxY) {
@@ -44,11 +45,6 @@ public class particle {
         if(vy > -1){
             vy = vy - 1.5;
         }
-        double xOffset = (Math.random() - 0.5) * 70; // Spread range of 10 pixels
-        double yOffset = (Math.random() - 0.5) * 20;
-
-        this.x = x+xOffset;
-        this.y = y+yOffset;
 
         this.color = Color.WHITE;
 
@@ -93,7 +89,7 @@ public class particle {
         // Adjust size based on age
         size = (age < 0.2) ? size + 0.1 : size - 0.3;
         alpha = 1 * (1 - Math.pow(age, 2));
-        color = getColorBasedOnLifetime(currentLifetime, lifetime, (int) alpha);
+        color = getColorBasedOnLifetime(currentLifetime, lifetime, alpha);
     }
 
     // Check if particle is alive
@@ -102,7 +98,7 @@ public class particle {
     }
 
     // Get particle color based on its lifetime
-    private Color getColorBasedOnLifetime(double currentLifetime, double lifetime, int alpha) {
+    private Color getColorBasedOnLifetime(double currentLifetime, double lifetime, double alpha) {
         age = Math.max(0, Math.min(1, currentLifetime / lifetime));  // Ensure age is between 0 and 1
 
         double r = 1.0;
@@ -125,6 +121,7 @@ public class particle {
         alpha = 1;
         size = startingSize;
         tempVy = 0;
+        mergedThisFrame = false;
     }
 
     // Draw particle

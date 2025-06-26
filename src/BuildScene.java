@@ -54,7 +54,6 @@ public class BuildScene {
 
     private int particlesAdded = 0;
     private int numParticles;
-    private boolean finishReported = false;
 
     private AnimationTimer renderLoop;
 
@@ -62,7 +61,6 @@ public class BuildScene {
     @FXML
     private void startSimulation() {
         try {
-            finishReported = false;
             long startTime = System.nanoTime();
 
             numParticles = Integer.parseInt(particleCountField.getText());
@@ -149,14 +147,16 @@ public class BuildScene {
                     @Override
                     public void handle(long now) {
                         clearCanvas(gc);
-                        engine.updateParticles();
-                        boolean drawn = engine.paint(gc);
+                        boolean drawn = engine.updateParticles();
+
                         if (!drawn) {
                             long end = System.nanoTime();
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
                             renderLoop.stop();
                         }
+
+                        engine.paint(gc);
                     }
                 };
             } else if (concurrencyType.equalsIgnoreCase("Parallel")) {
@@ -164,14 +164,16 @@ public class BuildScene {
                     @Override
                     public void handle(long now) {
                         clearCanvas(gc);
-                        engine.updateParticlesParallel();
-                        boolean drawn = engine.paintParallel(gc);
+                        boolean drawn = engine.updateParticlesParallel();
+
                         if (!drawn) {
                             long end = System.nanoTime();
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
                             renderLoop.stop();
                         }
+                        
+                        engine.paintParallel(gc);
                     }
                 };
             }

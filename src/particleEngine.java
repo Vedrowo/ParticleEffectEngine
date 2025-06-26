@@ -16,6 +16,7 @@ public class particleEngine {
     AtomicInteger nextListIndex = new AtomicInteger(0);
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger localCount = new AtomicInteger(0);
+    ConcurrentHashMap<Point, List<particle>> particleMap2 = new ConcurrentHashMap<>();
 
     int maxThreads = Runtime.getRuntime().availableProcessors();
     private final ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
@@ -29,64 +30,69 @@ public class particleEngine {
     }
 
     // Paint particles to the screen
-    public boolean paint(GraphicsContext g2d) {
-        boolean didDrawSomething = false;
+    public void paint(GraphicsContext g2d) {
 
         for (particle particle : particles) {
             if(particle.isAlive()){
                 particle.draw(g2d);
-                didDrawSomething = true;
             }
         }
-        return didDrawSomething;
     }
 
-    public boolean paintParallel(GraphicsContext gc) {
-        boolean didDrawSomething = false;
+    public void paintParallel(GraphicsContext gc) {
 
         for (ArrayList<particle> particles : ArrList) {
             for (particle particle : particles) {
                 if(particle.isAlive()){
                     particle.draw(gc);
-                    didDrawSomething = true;
                 }
             }
         }
-        return didDrawSomething;
+
     }
 
-    public void updateParticles(){
+    public boolean updateParticles(){
+        particleMap.clear();
         particleEngineUtil.updateParticles(particleMap, particles, numParticles, count);
+
+        for (particle p : particles) {
+            if(p.isAlive()){
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    public void updateParticlesParallel() {
+    public boolean updateParticlesParallel() {
+        particleMap2.clear();
 
-        ArrayList<Callable<Map<Point, List<particle>>>> tasks = new ArrayList<>();
+        ArrayList<Callable<Void>> tasks = new ArrayList<>();
 
         for (ArrayList<particle> partition : ArrList) {
-            tasks.add(() -> particleEngineUtil.updateParticles(particleMap, partition, numParticles, count));
+            tasks.add(() -> {
+                particleEngineUtil.updateParticlesParallel(particleMap2, partition, numParticles, count);
+                return null;
+            });
         }
 
-        List<Map<Point, List<particle>>> localMaps = new ArrayList<>();
         try {
-            List<Future<Map<Point, List<particle>>>> futures = executor.invokeAll(tasks);
+            executor.invokeAll(tasks);
 
-            for (Future<Map<Point, List<particle>>> future : futures) {
-                localMaps.add(future.get());
+            for (ArrayList<particle> partition : ArrList) {
+                for (particle p : partition) {
+                    if (p.isAlive()) return true;
+                }
             }
+            return false;
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            e.printStackTrace();
-            return;
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-            return;
+            throw new RuntimeException(e);
         }
-
-        mergeLocalMaps(localMaps);
     }
 
-
+/*
     public void mergeLocalMaps(List<Map<Point, List<particle>>> localMaps) {
         particleMap.clear();
 
@@ -99,6 +105,7 @@ public class particleEngine {
             }
         }
     }
+ */
 
     public void addParticles(double x, double y, int maxX, int maxY, int addCount){
         particleEngineUtil.addParticles(x, y, maxX, maxY, particles, count, addCount);
