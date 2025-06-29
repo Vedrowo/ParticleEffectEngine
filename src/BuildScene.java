@@ -156,7 +156,7 @@ public class BuildScene {
                             renderLoop.stop();
                         }
 
-                        engine.paint(gc);
+                        engine.paint(gc, width-215, height-275);
                     }
                 };
             } else if (concurrencyType.equalsIgnoreCase("Parallel")) {
@@ -173,7 +173,7 @@ public class BuildScene {
                             renderLoop.stop();
                         }
                         
-                        engine.paintParallel(gc);
+                        engine.paintParallel(gc, width-215, height-275);
                     }
                 };
             }

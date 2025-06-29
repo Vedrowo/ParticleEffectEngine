@@ -2,7 +2,6 @@ import javafx.scene.canvas.GraphicsContext;
 
 import java.util.*;
 import java.awt.*;
-import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,13 +9,13 @@ public class particleEngine {
 
     private final ArrayList<particle> particles = new ArrayList<>();
     private final ArrayList<ArrayList<particle>> ArrList = new ArrayList<>();
-    private final Map<Point, List<particle>> particleMap = new HashMap<>();
-    int numParticles;
+    private final Map<Point, ConcurrentLinkedQueue<particle>> particleMap = new HashMap<>();
+    int numParticles, localCount = 0;
     double x, y;
     AtomicInteger nextListIndex = new AtomicInteger(0);
     AtomicInteger count = new AtomicInteger(0);
-    AtomicInteger localCount = new AtomicInteger(0);
-    ConcurrentHashMap<Point, List<particle>> particleMap2 = new ConcurrentHashMap<>();
+
+    ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> particleMap2 = new ConcurrentHashMap<>();
 
     int maxThreads = Runtime.getRuntime().availableProcessors();
     private final ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
@@ -29,22 +28,21 @@ public class particleEngine {
         this.batchSize = numParticles / maxThreads;
     }
 
-    // Paint particles to the screen
-    public void paint(GraphicsContext g2d) {
+    public void paint(GraphicsContext g2d, int width, int height) {
 
         for (particle particle : particles) {
             if(particle.isAlive()){
-                particle.draw(g2d);
+                particle.draw(g2d, width, height);
             }
         }
     }
 
-    public void paintParallel(GraphicsContext gc) {
+    public void paintParallel(GraphicsContext gc, int width, int height) {
 
         for (ArrayList<particle> particles : ArrList) {
             for (particle particle : particles) {
                 if(particle.isAlive()){
-                    particle.draw(gc);
+                    particle.draw(gc, width, height);
                 }
             }
         }
@@ -112,7 +110,7 @@ public class particleEngine {
     }
 
     public void addParticlesParallel(double x, double y, int maxX, int maxY, int addCount){
-        particleEngineUtil.addParticlesParallel(x, y, maxX, maxY, count, ArrList, nextListIndex, batchSize, localCount, addCount);
+        localCount = particleEngineUtil.addParticlesParallel(x, y, maxX, maxY, count, ArrList, nextListIndex, batchSize, localCount, addCount);
     }
 
     public void addParticlesParallelBurst(double x, double y, int maxX, int maxY, int addCount){
@@ -128,7 +126,7 @@ public class particleEngine {
         this.x = x;
         this.y = y;
         count.set(0);
-        localCount.set(0);
+        localCount = 0;
         nextListIndex.set(0);
         particles.clear();
         particleMap.clear();

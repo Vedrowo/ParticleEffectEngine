@@ -2,9 +2,11 @@ import javafx.scene.canvas.GraphicsContext;
 
 import javafx.scene.paint.Color;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class particle {
 
-    // Particle properties
     public double x, y, startingX, startingY, startingSize, startingVX, startingVY;
     public double vx, vy, size, lifetime, currentLifetime, age, alpha;
     public Color color;
@@ -13,7 +15,6 @@ public class particle {
     private double xOffset, yOffset;
     public boolean mergedThisFrame = false;
 
-    // Constructor to initialize particle
     public particle(double x, double y, int maxX, int maxY) {
         xOffset = (Math.random() - 0.5) * 70;
         yOffset = (Math.random() - 0.5) * 20;
@@ -30,12 +31,10 @@ public class particle {
 
         double angle = Math.random() * 2 * Math.PI;
         double speed = 2 + Math.random() * 8;
-        double time = System.currentTimeMillis() / 1000.0; // Time in seconds
-        double phase = Math.random() * 2 * Math.PI; // Random phase between 0 and 2π
+        double time = System.currentTimeMillis() / 1000.0;
+        double phase = Math.random() * 2 * Math.PI;
 
-        // velocity range
         double amplitude = 1.5;
-        // Oscillations per second
         double frequency = 10.0;
         vx = amplitude * Math.sin(2 * Math.PI * frequency * time + phase);
         vy = 0 - Math.abs(Math.sin(angle) * speed);
@@ -48,7 +47,7 @@ public class particle {
 
         this.color = Color.WHITE;
 
-        if (Math.random() < 1.0 / 500) {  // 1 in 200 chance
+        if (Math.random() < 1.0 / 500) {
             this.vx = vx*8;
             this.vy = vy*4;
             this.size = 15;
@@ -61,12 +60,20 @@ public class particle {
         this.startingSize = size;
     }
 
+    private static final Map<String, Color> colorCache = new HashMap<>();
+
+    private static Color getCachedColor(Color base, double alpha) {
+        String key = base.toString() + "-" + alpha;
+        return colorCache.computeIfAbsent(key, k ->
+                Color.color(base.getRed(), base.getGreen(), base.getBlue(), alpha)
+        );
+    }
+
     public void setBounds(int width, int height) {
         this.maxX = width;
         this.maxY = height;
     }
 
-    // Update particle movement
     public void movement() {
         if (tempVy != 0) {
             vy = tempVy;
@@ -86,20 +93,17 @@ public class particle {
 
         currentLifetime++;
 
-        // Adjust size based on age
         size = (age < 0.2) ? size + 0.1 : size - 0.3;
         alpha = 1 * (1 - Math.pow(age, 2));
         color = getColorBasedOnLifetime(currentLifetime, lifetime, alpha);
     }
 
-    // Check if particle is alive
     public boolean isAlive() {
         return currentLifetime < lifetime;
     }
 
-    // Get particle color based on its lifetime
     private Color getColorBasedOnLifetime(double currentLifetime, double lifetime, double alpha) {
-        age = Math.max(0, Math.min(1, currentLifetime / lifetime));  // Ensure age is between 0 and 1
+        age = Math.max(0, Math.min(1, currentLifetime / lifetime));  // age between 0 and 1
 
         double r = 1.0;
         double g = (1 - 2 * age);
@@ -111,7 +115,6 @@ public class particle {
         return new Color(r, g, b, alpha);
     }
 
-    // Reset particle to its initial state
     public void reset() {
         currentLifetime = 0;
         x = startingX + xOffset;
@@ -124,17 +127,12 @@ public class particle {
         mergedThisFrame = false;
     }
 
-    // Draw particle
-    public void draw(GraphicsContext gc) {
-        // Draw the glowing effect
-        Color fxGlowColor = Color.rgb(
-                (int) (color.getRed() * 255),
-                (int) (color.getGreen() * 255),
-                (int) (color.getBlue() * 255),
-                alpha
-        );
+    public void draw(GraphicsContext gc, double canvasWidth, double canvasHeight) {
 
-        gc.setFill(fxGlowColor);
+        if (x + size < 0 || x - size > canvasWidth || y + size < 0 || y - size > canvasHeight) return;
+
+        Color cachedColor = getCachedColor(color, alpha);
+
         gc.fillOval(
                 x - size * 0.5,
                 y - size * 0.5,
@@ -142,15 +140,8 @@ public class particle {
                 size * 1.5
         );
 
-        // Draw the core particle
-        Color fxColor = Color.rgb(
-                (int) (color.getRed() * 255),
-                (int) (color.getGreen() * 255),
-                (int) (color.getBlue() * 255),
-                alpha
-        );
 
-        gc.setFill(fxColor);
+        gc.setFill(cachedColor);
         gc.fillOval(
                 x - size / 2,
                 y - size / 2,

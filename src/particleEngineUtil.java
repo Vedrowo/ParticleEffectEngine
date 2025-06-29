@@ -2,22 +2,12 @@ import java.awt.Point;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class particleEngineUtil {
     private static final double cellSize = 50;
-
-    private static final Object resetLock = new Object();
-
-    public static void ResetParticle(particle p, AtomicInteger count, int numParticles) {
-        synchronized (resetLock) {
-            if (count.get() < numParticles) {
-                p.reset();
-                count.incrementAndGet();
-            }
-        }
-    }
 
     // Detect if two particles are colliding
     public static boolean isColliding(particle p1, particle p2) {
@@ -28,41 +18,44 @@ public class particleEngineUtil {
         return distanceSquared < radius * radius;
     }
 
-    // Update particles and manage their state
-    public static void updateParticles(Map<Point, List<particle>> map, ArrayList<particle> particles, int numParticles, AtomicInteger count) {
-
-        for (particle particle : particles) {
-            if (!particle.isAlive()) {
-                particleEngineUtil.ResetParticle(particle, count, numParticles);
-            } else {
-                particle.movement();
-                if(particle.age  > 0.8){
-                    Point cell = getCell(particle.x, particle.y);
-                    map.computeIfAbsent(cell, _ -> new ArrayList<>()).add(particle);
-                    handleCollisions(particle, map);
+    public static void updateParticles(Map<Point, ConcurrentLinkedQueue<particle>> map, ArrayList<particle> particles, int numParticles, AtomicInteger count) {
+        int c = 0;
+        for (particle p : particles) {
+            if (!p.isAlive()) {
+                if (count.get() < numParticles) {
+                    p.reset();
+                    c++;
                 }
-
+            } else {
+                p.movement();
+                if(p.age  > 0.8){
+                    Point cell = getCell(p.x, p.y);
+                    map.computeIfAbsent(cell, _ -> new ConcurrentLinkedQueue<>()).add(p);
+                    handleCollisions(p, map);
+                }
             }
+            count.addAndGet(c);
         }
     }
 
-    public static void updateParticlesParallel(ConcurrentHashMap<Point, List<particle>> map, ArrayList<particle> particles, int numParticles, AtomicInteger count) {
-
+    public static void updateParticlesParallel(ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> map, ArrayList<particle> particles, int numParticles, AtomicInteger count) {
+        int c = 0;
         for (particle p : particles) {
             if (!p.isAlive()) {
-                particleEngineUtil.ResetParticle(p, count, numParticles);
+                if (count.get() < numParticles) {
+                    p.reset();
+                    c++;
+                }
             } else {
                 p.mergedThisFrame = false;
                 p.movement();
                 if (p.age > 0.8) {
                     Point cell = getCell(p.x, p.y);
-                    map.computeIfAbsent(cell, _ -> Collections.synchronizedList(new ArrayList<>())).add(p);
+                    map.computeIfAbsent(cell, _ -> new ConcurrentLinkedQueue<>()).add(p);
                     handleCollisions(p, map);
                 }
             }
-
-
-
+            count.addAndGet(c);
         }
     }
 
@@ -74,7 +67,7 @@ public class particleEngineUtil {
     }*/
 
     // Handle collisions between particles
-    private static void handleCollisions(particle p, Map<Point, List<particle>> map) {
+    private static void handleCollisions(particle p, Map<Point, ConcurrentLinkedQueue<particle>> map) {
         if(p.mergedThisFrame) return;
 
         Point cell = particleEngineUtil.getCell(p.x, p.y);
@@ -98,12 +91,10 @@ public class particleEngineUtil {
         }
     }
 
-    // Get the cell for a particle based on position
     public static Point getCell(double x, double y) {
         return new Point((int) (x / cellSize), (int) (y / cellSize));
     }
 
-    // Merge two particles when they collide
     public static void mergeParticles(particle p1, particle p2) {
         double avgX = (p1.x + p2.x) / 2;
         p1.x += (avgX - p1.x) / 10;
@@ -121,11 +112,11 @@ public class particleEngineUtil {
         count.addAndGet(addCount);
     }
 
-    public static void addParticlesParallel(
+    public static int addParticlesParallel(
             double x, double y, int maxX, int maxY,
             AtomicInteger count,
             ArrayList<ArrayList<particle>> ArrList,
-            AtomicInteger nextListIndex, int batchSize, AtomicInteger localCounter, int addCount
+            AtomicInteger nextListIndex, int batchSize, int localCounter, int addCount
     ) {
         if (ArrList.isEmpty()) {
             makeArrList(ArrList);
@@ -139,12 +130,13 @@ public class particleEngineUtil {
 
         count.addAndGet(addCount);
 
-        int counter = localCounter.addAndGet(addCount);
+        localCounter += addCount;
 
-        if(counter >= batchSize) {
+        if(localCounter >= batchSize) {
             nextListIndex.updateAndGet(i -> (i + 1) % ArrList.size());
-            localCounter.set(0);
+            localCounter = 0;
         }
+        return localCounter;
     }
 
     public static void addParticlesParallelBurst(
