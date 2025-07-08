@@ -9,6 +9,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class particleEngineUtil {
     private static final double cellSize = 50;
 
+    record CellKey(double x, double y) {
+        public int hashCode() { return (int) (31 * x + y); }
+    }
+
     // Detect if two particles are colliding
     public static boolean isColliding(particle p1, particle p2) {
         double dx = Math.abs(p1.x - p2.x);
@@ -59,32 +63,25 @@ public class particleEngineUtil {
         }
     }
 
-    /*
-    private static void addToMap(ConcurrentHashMap<Point, ConcurrentLinkedQueue<particle>> map, particle p) {
-        Point cell = getCell(p.x, p.y);
-        map.putIfAbsent(cell, new ConcurrentLinkedQueue<>());
-        map.get(cell).add(p);
-    }*/
-
-    // Handle collisions between particles
     private static void handleCollisions(particle p, Map<Point, ConcurrentLinkedQueue<particle>> map) {
         if(p.mergedThisFrame) return;
 
-        Point cell = particleEngineUtil.getCell(p.x, p.y);
+        CellKey cell = new CellKey(p.x, p.y);
 
-        // Check the current cell and neighboring cells
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
-                Point neighborCell = new Point(cell.x + dx, cell.y + dy);
+                CellKey neighbor = new CellKey(cell.x() + dx, cell.y() + dy);
 
-                if (map.containsKey(neighborCell)) {
-                    for (particle other : map.get(neighborCell)) {
-                        if (p != other && particleEngineUtil.isColliding(p, other)) {
-                            particleEngineUtil.mergeParticles(p, other);
-                            p.mergedThisFrame = true;
-                            other.mergedThisFrame = true;
-                            return;
-                        }
+                var others = map.get(neighbor);
+                if (others == null) continue;
+
+                for (particle other : others) {
+                    if (p != other && !other.mergedThisFrame &&
+                            particleEngineUtil.isColliding(p, other)) {
+                        particleEngineUtil.mergeParticles(p, other);
+                        p.mergedThisFrame = true;
+                        other.mergedThisFrame = true;
+                        return;
                     }
                 }
             }

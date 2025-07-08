@@ -2,9 +2,6 @@ import javafx.scene.canvas.GraphicsContext;
 
 import javafx.scene.paint.Color;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class particle {
 
     public double x, y, startingX, startingY, startingSize, startingVX, startingVY;
@@ -12,7 +9,7 @@ public class particle {
     public Color color;
     public double tempVy = 0;
     public int maxX, maxY;
-    private double xOffset, yOffset;
+    private final double xOffset, yOffset;
     public boolean mergedThisFrame = false;
 
     public particle(double x, double y, int maxX, int maxY) {
@@ -58,15 +55,6 @@ public class particle {
         }
 
         this.startingSize = size;
-    }
-
-    private static final Map<String, Color> colorCache = new HashMap<>();
-
-    private static Color getCachedColor(Color base, double alpha) {
-        String key = base.toString() + "-" + alpha;
-        return colorCache.computeIfAbsent(key, k ->
-                Color.color(base.getRed(), base.getGreen(), base.getBlue(), alpha)
-        );
     }
 
     public void setBounds(int width, int height) {
@@ -131,17 +119,7 @@ public class particle {
 
         if (x + size < 0 || x - size > canvasWidth || y + size < 0 || y - size > canvasHeight) return;
 
-        Color cachedColor = getCachedColor(color, alpha);
-
-        gc.fillOval(
-                x - size * 0.5,
-                y - size * 0.5,
-                size * 1.5,
-                size * 1.5
-        );
-
-
-        gc.setFill(cachedColor);
+        gc.setFill(color);
         gc.fillOval(
                 x - size / 2,
                 y - size / 2,

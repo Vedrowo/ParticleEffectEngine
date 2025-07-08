@@ -90,21 +90,6 @@ public class particleEngine {
         }
     }
 
-/*
-    public void mergeLocalMaps(List<Map<Point, List<particle>>> localMaps) {
-        particleMap.clear();
-
-        for (Map<Point, List<particle>> localMap : localMaps) {
-            for (Map.Entry<Point, List<particle>> entry : localMap.entrySet()) {
-                Point cell = entry.getKey();
-                List<particle> localParticles = entry.getValue();
-
-                particleMap.computeIfAbsent(cell, _ -> new ArrayList<>()).addAll(localParticles);
-            }
-        }
-    }
- */
-
     public void addParticles(double x, double y, int maxX, int maxY, int addCount){
         particleEngineUtil.addParticles(x, y, maxX, maxY, particles, count, addCount);
     }

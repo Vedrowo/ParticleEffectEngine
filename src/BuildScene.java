@@ -30,13 +30,9 @@ public class BuildScene {
     public void bindWindowSizeToFields(Stage stage) {
         this.stage = stage;
 
-        stage.widthProperty().addListener((obs, oldVal, newVal) -> {
-            windowWidthField.setText(String.valueOf(newVal.intValue()));
-        });
+        stage.widthProperty().addListener((_, _, newVal) -> windowWidthField.setText(String.valueOf(newVal.intValue())));
 
-        stage.heightProperty().addListener((obs, oldVal, newVal) -> {
-            windowHeightField.setText(String.valueOf(newVal.intValue()));
-        });
+        stage.heightProperty().addListener((_, _, newVal) -> windowHeightField.setText(String.valueOf(newVal.intValue())));
 
         windowWidthField.setText(String.valueOf((int) stage.getWidth()));
         windowHeightField.setText(String.valueOf((int) stage.getHeight()));
