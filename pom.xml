@@ -28,6 +28,13 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+        <dependency>
+            <groupId>mpj</groupId>
+            <artifactId>mpj</artifactId>
+            <version>0.44</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/mpj.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>
