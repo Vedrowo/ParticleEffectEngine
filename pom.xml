@@ -35,6 +35,7 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/mpj.jar</systemPath>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -44,7 +45,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>org.example.Main</mainClass>
+                    <mainClass>org.example.DistributedMain</mainClass>
                     <arguments>
                         <argument>--module-path</argument>
                         <argument>${java.home}/lib</argument> <!-- might need adjustment -->

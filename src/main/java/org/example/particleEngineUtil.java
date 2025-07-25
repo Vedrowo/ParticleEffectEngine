@@ -67,6 +67,19 @@ public class particleEngineUtil {
         }
     }
 
+    public static void updateParticlesDistributed(Map<Point, ConcurrentLinkedQueue<particle>> map, ArrayList<particle> particles) {
+        for (particle p : particles) {
+
+            p.mergedThisFrame = false;
+            p.movement();
+            if (p.age > 0.8) {
+                Point cell = getCell(p.x, p.y);
+                map.computeIfAbsent(cell, x -> new ConcurrentLinkedQueue<>()).add(p);
+                handleCollisions(p, map);
+            }
+        }
+    }
+
     private static void handleCollisions(particle p, Map<Point, ConcurrentLinkedQueue<particle>> map) {
         if(p.mergedThisFrame) return;
 
@@ -187,10 +200,30 @@ public class particleEngineUtil {
         }
     }
 
+    public static void makeArrListDistributed(ArrayList<ArrayList<particle>> ArrList){
+        for (int i = 0; i < 4; i++){
+            ArrList.add(new ArrayList<>());
+        }
+    }
+
 
     public static void setBounds(int width, int height, ArrayList<particle> particles) {
         for (particle p : particles) {
             p.setBounds(width, height);
+        }
+    }
+
+    public static void addParticlesDistributed(
+            double x, double y, int maxX, int maxY,
+            ArrayList<ArrayList<particle>> ArrList,
+            int addCount
+    ) {
+        if (ArrList.isEmpty()) {
+            makeArrListDistributed(ArrList);
+        }
+
+        for (int i = 0; i < addCount; i++) {
+            ArrList.getFirst().add(new particle(x, y, maxX, maxY));
         }
     }
 }

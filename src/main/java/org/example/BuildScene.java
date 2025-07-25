@@ -8,6 +8,10 @@ import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import mpi.MPI;
+import mpi.MPIException;
+import mpi.Status;
+import java.io.IOException;
 
 public class BuildScene {
 
@@ -44,7 +48,7 @@ public class BuildScene {
     public void initialize() {
         myChoiceBox.getItems().addAll("Over time", "Burst");
         myChoiceBox.setValue("Over time"); // default selected item
-        myChoiceBox1.getItems().addAll("Sequential", "Parallel");
+        myChoiceBox1.getItems().addAll("Sequential", "Parallel", "Distributed");
         myChoiceBox1.setValue("Sequential"); // default selected item
     }
 
@@ -84,6 +88,64 @@ public class BuildScene {
 
             engine.setBounds(width, height);
 
+            // entire distributed logic dumped here
+            if (concurrencyType.equalsIgnoreCase("Distributed")) {
+                int workerCount = 4;
+                StringBuilder results = new StringBuilder();
+
+                if(mode.equalsIgnoreCase("Burst")){
+                    engine.addParticlesDistributed(x, y, width-215, height, numParticles);
+                } else {
+                    particlesAdded = 0;
+                    AnimationTimer particleAdder;
+
+                    particleAdder = new AnimationTimer() {
+                        @Override
+                        public void handle(long now) {
+                            int addCount = 10;
+                            if(particlesAdded < numParticles) {
+                                engine.addParticlesDistributed(x, y, width-215, height, addCount);
+                                particlesAdded+=addCount;
+                            }
+                            if (particlesAdded >= numParticles) stop();
+                        }
+                    };
+                    particleAdder.start();
+                }
+
+                for (int rank = 0; rank < workerCount; rank++) {
+                    int port = 5000 + rank;
+                    try (java.net.Socket socket = new java.net.Socket("localhost", port);
+                         java.io.BufferedWriter out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(socket.getOutputStream()));
+                         java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(socket.getInputStream()))) {
+
+                        int rangeSize = height / workerCount;
+                        int rangeStart = rank * rangeSize;
+                        int rangeEnd = rangeStart + rangeSize;
+
+                        String message = "Size of worker " + rank + " is " + rangeStart + " - " + rangeEnd;
+                        out.write(message);
+                        out.newLine();
+                        out.flush();
+
+                        String reply = in.readLine();
+                        results.append("Worker ").append(rank).append(" replied: ").append(reply).append("\n");
+
+                    } catch (IOException ex) {
+                        results.append("Failed to connect to worker ").append(rank).append(" on port ").append(port).append("\n");
+                    }
+                }
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Distributed Communication Test");
+                alert.setHeaderText("Worker Responses:");
+                alert.setContentText(results.toString());
+                alert.show();
+
+                return;
+            }
+
+
             if (mode.equalsIgnoreCase("Burst")) {
                 if(concurrencyType.equalsIgnoreCase("Sequential")) {
                     engine.addParticles(x, y, width-215, height, numParticles);
@@ -108,6 +170,8 @@ public class BuildScene {
                             if (particlesAdded >= numParticles) stop();
                         }
                     };
+                    particleAdder.start();
+
                 } else if (concurrencyType.equals("Parallel")) {
                     particleAdder = new AnimationTimer() {
                         @Override
@@ -120,17 +184,8 @@ public class BuildScene {
                             if (particlesAdded >= numParticles) stop();
                         }
                     };
-                } else {
-                    //prep for distributed
-                    particleAdder = new AnimationTimer() {
-                        @Override
-                        public void handle(long now) {
-
-                        }
-                    };
+                    particleAdder.start();
                 }
-
-                particleAdder.start();
             }
 
             if (renderLoop != null) {
@@ -157,6 +212,8 @@ public class BuildScene {
                         engine.paint(gc, width-215, height-275);
                     }
                 };
+                renderLoop.start();
+
             } else if (concurrencyType.equalsIgnoreCase("Parallel")) {
                 renderLoop = new AnimationTimer() {
                     @Override
@@ -174,9 +231,8 @@ public class BuildScene {
                         engine.paintParallel(gc, width-215, height-275);
                     }
                 };
+                renderLoop.start();
             }
-
-            renderLoop.start();
 
         } catch (NumberFormatException e) {
             showAlert();
@@ -198,5 +254,4 @@ public class BuildScene {
         alert.setContentText("Please enter valid numbers.");
         alert.show();
     }
-
 }

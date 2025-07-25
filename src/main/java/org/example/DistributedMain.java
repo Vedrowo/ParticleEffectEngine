@@ -1,16 +1,22 @@
 package org.example;
 
+import javafx.application.Application;
 import mpi.MPI;
+import mpi.MPIException;
 
 public class DistributedMain {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws MPIException {
         MPI.Init(args);
-
         int rank = MPI.COMM_WORLD.Rank();
-        int size = MPI.COMM_WORLD.Size();
+        System.out.println("Rank: " + rank);
 
-        System.out.println("Hello from process "+ rank +" out of "+ size);
-
+        if (rank == 0) {
+            // launch JavaFX GUI
+            Application.launch(GuiApp.class, args);
+        } else {
+            // worker code here
+        }
         MPI.Finalize();
     }
+
 }

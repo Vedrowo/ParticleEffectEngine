@@ -106,6 +106,10 @@ public class particleEngine {
         particleEngineUtil.addParticlesParallelBurst(x, y, maxX, maxY, count, ArrList, executor, addCount);
     }
 
+    public void addParticlesDistributed(double x, double y, int maxX, int maxY, int addCount){
+        particleEngineUtil.addParticlesDistributed(x, y, maxX, maxY, ArrList, addCount);
+    }
+
     public void setBounds(int width, int height){
         particleEngineUtil.setBounds(width, height, particles);
     }
