@@ -3,11 +3,14 @@ package org.example;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
-public class particle {
+import java.io.Serializable;
+
+public class particle implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     public double x, y, startingX, startingY, startingSize, startingVX, startingVY;
     public double vx, vy, size, lifetime, currentLifetime, age, alpha;
-    public Color color;
+    public double r = 1.0, g = 1.0, b = 1.0;
     public double tempVy = 0;
     public int maxX, maxY;
     private final double xOffset, yOffset;
@@ -43,7 +46,9 @@ public class particle {
             vy = vy - 1.5;
         }
 
-        this.color = Color.WHITE;
+        r = 1.0;
+        g = 1.0;
+        b = 1.0;
 
         if (Math.random() < 1.0 / 500) {
             this.vx = vx*8;
@@ -84,24 +89,20 @@ public class particle {
 
         size = (age < 0.2) ? size + 0.1 : size - 0.3;
         alpha = 1 * (1 - Math.pow(age, 2));
-        color = getColorBasedOnLifetime(currentLifetime, lifetime, alpha);
+        getColorBasedOnLifetime(currentLifetime, lifetime, alpha);
     }
 
     public boolean isAlive() {
         return currentLifetime < lifetime;
     }
 
-    private Color getColorBasedOnLifetime(double currentLifetime, double lifetime, double alpha) {
+    private void getColorBasedOnLifetime(double currentLifetime, double lifetime, double alpha) {
         age = Math.max(0, Math.min(1, currentLifetime / lifetime));  // age between 0 and 1
 
-        double r = 1.0;
-        double g = (1 - 2 * age);
-        double b = (1 - 10 * age);
-
-        g = Math.max(0, Math.min(1, g));
-        b = Math.max(0, Math.min(1, b));
-
-        return new Color(r, g, b, alpha);
+        r = 1.0;
+        g = Math.max(0, Math.min(1, 1 - 2 * age));
+        b = Math.max(0, Math.min(1, 1 - 10 * age));
+        this.alpha = alpha;
     }
 
     public void reset() {
@@ -120,13 +121,17 @@ public class particle {
 
         if (x + size < 0 || x - size > canvasWidth || y + size < 0 || y - size > canvasHeight) return;
 
-        gc.setFill(color);
+        gc.setFill(getColor());
         gc.fillOval(
                 x - size / 2,
                 y - size / 2,
                 size,
                 size
         );
+    }
+
+    public Color getColor() {
+        return new Color(r, g, b, alpha);
     }
 
 }

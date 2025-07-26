@@ -7,17 +7,23 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Worker {
     private final int port;
-    private ArrayList<particle> particles = new ArrayList<>();
-    private int maxX, maxY;
+    private ArrayList<particle> particles;
     private final Map<Point, ConcurrentLinkedQueue<particle>> particleMap = new HashMap<>();
     private boolean simulationRunning = false;
+    private final int workerID;
+    private int rangeStart, rangeEnd;
+    private String mode;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
 
     public Worker(int port) {
         this.port = port;
+        this.workerID = port % 5000;
     }
 
     public void start() {
@@ -25,26 +31,32 @@ public class Worker {
             System.out.println("Worker listening on port " + port);
 
             while (true) {
-                try (Socket clientSocket = serverSocket.accept();
-                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                     BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()))) {
+                try (Socket clientSocket = serverSocket.accept()) {
+                    out = new ObjectOutputStream(clientSocket.getOutputStream());
+                    in = new ObjectInputStream(clientSocket.getInputStream());
 
-                    String message = in.readLine();
-                    System.out.println("Received: " + message);
+
+                    WorkerData data = (WorkerData) in.readObject();
+                    this.rangeStart = data.rangeStart;
+                    this.rangeEnd = data.rangeEnd;
+                    this.particles = data.particles;
+                    this.mode = data.mode;
+
+                    System.out.println("Worker " + workerID + " initialized with " + particles.size() + " particles. Range: " + rangeStart + "-" + rangeEnd);
 
                     if (!simulationRunning) {
                         simulationRunning = true;
-                        new Thread(this::startSimulationLoop).start(); // start particle loop in background
+                        new Thread(() -> startSimulationLoop(out)).start();
                     }
 
-                    String reply = "Hello from worker on port " + port;
-                    out.write(reply);
-                    out.newLine();
-                    out.flush();
                 } catch (IOException e) {
                     System.err.println("Client connection error: " + e.getMessage());
+                    simulationRunning = false;
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
                 }
             }
+
 
         } catch (IOException e) {
             System.err.println("Could not listen on port " + port);
@@ -52,11 +64,28 @@ public class Worker {
         }
     }
 
-    private void startSimulationLoop() {
+    private void startSimulationLoop(ObjectOutputStream out) {
         while (true) {
-            particleEngineUtil.updateParticlesDistributed(particleMap, particles);
+            if(Objects.equals(mode, "Burst")){
+                particleEngineUtil.updateParticlesDistributed(particleMap, particles);
+            }
 
-            // Add logic to transfer particles to other workers if they cross zone bounds
+
+            for(particle p : particles) {
+                if(p.y > rangeEnd && workerID < 3){
+                    System.out.println("particles left boundary");
+                }
+            }
+
+            try {
+                out.reset(); // important to avoid memory leak in object serialization
+                out.writeObject(particles);
+                out.flush();
+            } catch (IOException e) {
+                System.err.println("Error sending updated particles: " + e.getMessage());
+                simulationRunning = false;
+                break;
+            }
 
             try {
                 Thread.sleep(16); // ~60 FPS

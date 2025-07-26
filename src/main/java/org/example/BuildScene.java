@@ -11,7 +11,13 @@ import javafx.stage.Stage;
 import mpi.MPI;
 import mpi.MPIException;
 import mpi.Status;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
 
 public class BuildScene {
 
@@ -92,10 +98,11 @@ public class BuildScene {
             if (concurrencyType.equalsIgnoreCase("Distributed")) {
                 int workerCount = 4;
                 StringBuilder results = new StringBuilder();
+                ArrayList<ArrayList<particle>> list = engine.getArrList();
 
-                if(mode.equalsIgnoreCase("Burst")){
+                //if(mode.equalsIgnoreCase("Burst")){
                     engine.addParticlesDistributed(x, y, width-215, height, numParticles);
-                } else {
+                /*} else {
                     particlesAdded = 0;
                     AnimationTimer particleAdder;
 
@@ -111,21 +118,21 @@ public class BuildScene {
                         }
                     };
                     particleAdder.start();
-                }
+                }*/
 
                 for (int rank = 0; rank < workerCount; rank++) {
                     int port = 5000 + rank;
-                    try (java.net.Socket socket = new java.net.Socket("localhost", port);
-                         java.io.BufferedWriter out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(socket.getOutputStream()));
-                         java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(socket.getInputStream()))) {
+                    try (Socket socket = new Socket("localhost", port);
+                         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+                         BufferedReader in = new java.io.BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                         int rangeSize = height / workerCount;
                         int rangeStart = rank * rangeSize;
                         int rangeEnd = rangeStart + rangeSize;
 
-                        String message = "Size of worker " + rank + " is " + rangeStart + " - " + rangeEnd;
-                        out.write(message);
-                        out.newLine();
+                        WorkerData data = new WorkerData(rangeStart, rangeEnd, list.get(rank), mode);
+
+                        out.writeObject(data);
                         out.flush();
 
                         String reply = in.readLine();

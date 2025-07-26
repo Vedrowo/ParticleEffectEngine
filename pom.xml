@@ -45,10 +45,10 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>org.example.DistributedMain</mainClass>
+                    <mainClass>org.example.GuiApp</mainClass>
                     <arguments>
                         <argument>--module-path</argument>
-                        <argument>${java.home}/lib</argument> <!-- might need adjustment -->
+                        <argument>${java.home}/lib</argument>
                         <argument>--add-modules</argument>
                         <argument>javafx.controls,javafx.fxml</argument>
                     </arguments>

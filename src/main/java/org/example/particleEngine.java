@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class particleEngine {
 
     private final ArrayList<particle> particles = new ArrayList<>();
-    private final ArrayList<ArrayList<particle>> ArrList = new ArrayList<>();
+    private ArrayList<ArrayList<particle>> ArrList = new ArrayList<>();
     private final Map<Point, ConcurrentLinkedQueue<particle>> particleMap = new HashMap<>();
     int numParticles, localCount = 0;
     double x, y;
@@ -126,5 +126,12 @@ public class particleEngine {
         for (ArrayList<particle> list : ArrList) {
             list.clear();
         }
+    }
+
+    public ArrayList<ArrayList<particle>> getArrList(){
+        if(ArrList.isEmpty()){
+            particleEngineUtil.makeArrListDistributed(ArrList);
+        }
+        return ArrList;
     }
 }
