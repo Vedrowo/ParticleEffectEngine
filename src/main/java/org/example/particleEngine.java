@@ -50,7 +50,19 @@ public class particleEngine {
                 }
             }
         }
+    }
 
+    public void paintDistributed(GraphicsContext gc, int width, int height) {
+
+        for (ArrayList<particle> particles : ArrList) {
+            synchronized (particles) {
+                for (particle particle : particles) {
+                    if(particle.isAlive()){
+                        particle.draw(gc, width, height);
+                    }
+                }
+            }
+        }
     }
 
     public boolean updateParticles(){

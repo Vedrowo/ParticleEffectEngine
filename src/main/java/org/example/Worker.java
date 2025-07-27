@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Worker {
+
     private final int port;
     private ArrayList<particle> particles;
     private final Map<Point, ConcurrentLinkedQueue<particle>> particleMap = new HashMap<>();
@@ -18,8 +19,6 @@ public class Worker {
     private final int workerID;
     private int rangeStart, rangeEnd;
     private String mode;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
 
     public Worker(int port) {
         this.port = port;
@@ -31,77 +30,84 @@ public class Worker {
             System.out.println("Worker listening on port " + port);
 
             while (true) {
-                try (Socket clientSocket = serverSocket.accept()) {
-                    out = new ObjectOutputStream(clientSocket.getOutputStream());
-                    in = new ObjectInputStream(clientSocket.getInputStream());
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("GUI connected");
 
+                ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+                ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+                out.flush();
 
-                    WorkerData data = (WorkerData) in.readObject();
-                    this.rangeStart = data.rangeStart;
-                    this.rangeEnd = data.rangeEnd;
-                    this.particles = data.particles;
-                    this.mode = data.mode;
+                // Read initial config from GUI
+                WorkerData data = (WorkerData) in.readObject();
+                this.rangeStart = data.rangeStart;
+                this.rangeEnd = data.rangeEnd;
+                this.particles = data.particles;
+                this.mode = data.mode;
 
-                    System.out.println("Worker " + workerID + " initialized with " + particles.size() + " particles. Range: " + rangeStart + "-" + rangeEnd);
+                System.out.println("Worker " + workerID + " initialized with " + particles.size() + " particles.");
 
-                    if (!simulationRunning) {
-                        simulationRunning = true;
-                        new Thread(() -> startSimulationLoop(out)).start();
-                    }
+                simulationRunning = true;
 
-                } catch (IOException e) {
-                    System.err.println("Client connection error: " + e.getMessage());
-                    simulationRunning = false;
-                } catch (ClassNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
+                // Start simulation loop in separate thread
+                Thread simulationThread = new Thread(() -> runSimulationLoop(out));
+                simulationThread.setDaemon(true);
+                simulationThread.start();
+
+                // Optional: if GUI can send commands during simulation, start a thread to listen for commands
+                // Thread commandListener = new Thread(() -> listenForCommands(in));
+                // commandListener.setDaemon(true);
+                // commandListener.start();
+
+                //simulationThread.join(); // Wait for simulation to finish before accepting new connection
+                //simulationRunning = false;
+
+                // Close streams and socket after simulation ends
+                //in.close();
+                //out.close();
+                //clientSocket.close();
             }
 
-
-        } catch (IOException e) {
-            System.err.println("Could not listen on port " + port);
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Worker error: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private void startSimulationLoop(ObjectOutputStream out) {
-        while (true) {
-            if(Objects.equals(mode, "Burst")){
-                particleEngineUtil.updateParticlesDistributed(particleMap, particles);
-            }
-
-
-            for(particle p : particles) {
-                if(p.y > rangeEnd && workerID < 3){
-                    System.out.println("particles left boundary");
+    private void runSimulationLoop(ObjectOutputStream out) {
+        try {
+            while (simulationRunning) {
+                // Update particles according to mode
+                if (Objects.equals(mode, "Burst")) {
+                    particleEngineUtil.updateParticlesDistributed(particleMap, particles);
+                } else {
+                    // Implement other modes if needed
                 }
-            }
 
-            try {
-                out.reset(); // important to avoid memory leak in object serialization
+                for (particle p : particles) {
+                    if (p.y > rangeEnd && workerID < 3) {
+                        System.out.println("particles left boundary");
+                    }
+                }
+
+                // Send updated particles back to GUI
+                out.reset();
                 out.writeObject(particles);
                 out.flush();
-            } catch (IOException e) {
-                System.err.println("Error sending updated particles: " + e.getMessage());
-                simulationRunning = false;
-                break;
-            }
 
-            try {
-                Thread.sleep(16); // ~60 FPS
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+                // Sleep for ~16ms (~60fps)
+                Thread.sleep(16);
             }
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Simulation loop error: " + e.getMessage());
+            simulationRunning = false;
         }
     }
 
     public static void main(String[] args) {
-        int port = 5000;
+        int port = 5000; // default
         if (args.length > 0) {
             port = Integer.parseInt(args[0]);
         }
-        Worker worker = new Worker(port);
-        worker.start();
+        new Worker(port).start();
     }
 }

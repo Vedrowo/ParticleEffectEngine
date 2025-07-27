@@ -12,10 +12,7 @@ import mpi.MPI;
 import mpi.MPIException;
 import mpi.Status;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 
@@ -37,7 +34,7 @@ public class BuildScene {
 
     private Stage stage;
 
-
+    private volatile boolean[] isWorkerDone;
 
     public void bindWindowSizeToFields(Stage stage) {
         this.stage = stage;
@@ -97,59 +94,43 @@ public class BuildScene {
             // entire distributed logic dumped here
             if (concurrencyType.equalsIgnoreCase("Distributed")) {
                 int workerCount = 4;
-                StringBuilder results = new StringBuilder();
                 ArrayList<ArrayList<particle>> list = engine.getArrList();
 
-                //if(mode.equalsIgnoreCase("Burst")){
-                    engine.addParticlesDistributed(x, y, width-215, height, numParticles);
-                /*} else {
-                    particlesAdded = 0;
-                    AnimationTimer particleAdder;
-
-                    particleAdder = new AnimationTimer() {
-                        @Override
-                        public void handle(long now) {
-                            int addCount = 10;
-                            if(particlesAdded < numParticles) {
-                                engine.addParticlesDistributed(x, y, width-215, height, addCount);
-                                particlesAdded+=addCount;
-                            }
-                            if (particlesAdded >= numParticles) stop();
-                        }
-                    };
-                    particleAdder.start();
-                }*/
+                engine.addParticlesDistributed(x, y, width - 215, height, numParticles);
+                isWorkerDone = new boolean[workerCount];
 
                 for (int rank = 0; rank < workerCount; rank++) {
                     int port = 5000 + rank;
-                    try (Socket socket = new Socket("localhost", port);
-                         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                         BufferedReader in = new java.io.BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                    isWorkerDone[rank] = false;
 
-                        int rangeSize = height / workerCount;
-                        int rangeStart = rank * rangeSize;
-                        int rangeEnd = rangeStart + rangeSize;
+                    int rangeSize = height / workerCount;
+                    int rangeStart = rank * rangeSize;
+                    int rangeEnd = rangeStart + rangeSize;
 
-                        WorkerData data = new WorkerData(rangeStart, rangeEnd, list.get(rank), mode);
+                    ArrayList<particle> sublist = list.get(rank);
+                    WorkerData data = new WorkerData(rangeStart, rangeEnd, sublist, mode);
+
+                    try {
+                        Socket socket = new Socket("localhost", port);
+
+                        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+                        System.out.println("created out stream");
+                        out.flush();
+                        System.out.println("flushed out stream");
+                        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                        System.out.println("created in stream");
 
                         out.writeObject(data);
                         out.flush();
 
-                        String reply = in.readLine();
-                        results.append("Worker ").append(rank).append(" replied: ").append(reply).append("\n");
+                        Thread listenerThread = new Thread(new WorkerListener(sublist, in, rank, isWorkerDone));
+                        listenerThread.setDaemon(true);
+                        listenerThread.start();
 
                     } catch (IOException ex) {
-                        results.append("Failed to connect to worker ").append(rank).append(" on port ").append(port).append("\n");
+                        System.err.println("Failed to connect/send to worker " + rank + " on port " + port);
                     }
                 }
-
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Distributed Communication Test");
-                alert.setHeaderText("Worker Responses:");
-                alert.setContentText(results.toString());
-                alert.show();
-
-                return;
             }
 
 
@@ -236,6 +217,31 @@ public class BuildScene {
                         }
                         
                         engine.paintParallel(gc, width-215, height-275);
+                    }
+                };
+                renderLoop.start();
+            } else {
+                renderLoop = new AnimationTimer() {
+                    @Override
+                    public void handle(long now) {
+                        clearCanvas(gc);
+
+                        boolean allDone = true;
+                        for (boolean done : isWorkerDone) {
+                            if (!done) {
+                                allDone = false;
+                                break;
+                            }
+                        }
+
+                        if (allDone) {
+                            long end = System.nanoTime();
+                            long elapsedNanos = end - startTime;
+                            runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
+                            renderLoop.stop();
+                        }
+
+                        engine.paintDistributed(gc, width-215, height-275);
                     }
                 };
                 renderLoop.start();
