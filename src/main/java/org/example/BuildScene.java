@@ -1,6 +1,7 @@
 package org.example;
 
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -8,13 +9,11 @@ import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import mpi.MPI;
-import mpi.MPIException;
-import mpi.Status;
-
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BuildScene {
 
@@ -35,6 +34,7 @@ public class BuildScene {
     private Stage stage;
 
     private volatile boolean[] isWorkerDone;
+    private static final int workerCount = 4;
 
     public void bindWindowSizeToFields(Stage stage) {
         this.stage = stage;
@@ -50,9 +50,9 @@ public class BuildScene {
     @FXML
     public void initialize() {
         myChoiceBox.getItems().addAll("Over time", "Burst");
-        myChoiceBox.setValue("Over time"); // default selected item
+        myChoiceBox.setValue("Over time");
         myChoiceBox1.getItems().addAll("Sequential", "Parallel", "Distributed");
-        myChoiceBox1.setValue("Sequential"); // default selected item
+        myChoiceBox1.setValue("Sequential");
     }
 
     @FXML private TextField particleCountField, windowWidthField, windowHeightField, xField, yField;
@@ -93,19 +93,20 @@ public class BuildScene {
 
             // entire distributed logic dumped here
             if (concurrencyType.equalsIgnoreCase("Distributed")) {
-                int workerCount = 4;
                 ArrayList<ArrayList<particle>> list = engine.getArrList();
 
                 engine.addParticlesDistributed(x, y, width - 215, height, numParticles);
                 isWorkerDone = new boolean[workerCount];
+                ObjectOutputStream[] outArray = new ObjectOutputStream[workerCount];
 
-                for (int rank = 0; rank < workerCount; rank++) {
+                // reverse loop to avoid worker 1 chucking particles at non-existent workers
+                for (int rank = workerCount - 1; rank >= 0; rank--) {
                     int port = 5000 + rank;
                     isWorkerDone[rank] = false;
 
                     int rangeSize = height / workerCount;
                     int rangeStart = rank * rangeSize;
-                    int rangeEnd = rangeStart + rangeSize;
+                    int rangeEnd = rangeStart + rangeSize + 100;
 
                     ArrayList<particle> sublist = list.get(rank);
                     WorkerData data = new WorkerData(rangeStart, rangeEnd, sublist, mode);
@@ -114,16 +115,15 @@ public class BuildScene {
                         Socket socket = new Socket("localhost", port);
 
                         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                        System.out.println("created out stream");
                         out.flush();
-                        System.out.println("flushed out stream");
                         ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-                        System.out.println("created in stream");
 
                         out.writeObject(data);
                         out.flush();
 
-                        Thread listenerThread = new Thread(new WorkerListener(sublist, in, rank, isWorkerDone));
+                        outArray[rank] = out;
+
+                        Thread listenerThread = new Thread(new WorkerListener(sublist, in, outArray, rank, isWorkerDone));
                         listenerThread.setDaemon(true);
                         listenerThread.start();
 
@@ -244,7 +244,7 @@ public class BuildScene {
                         engine.paintDistributed(gc, width-215, height-275);
                     }
                 };
-                renderLoop.start();
+               renderLoop.start();
             }
 
         } catch (NumberFormatException e) {
