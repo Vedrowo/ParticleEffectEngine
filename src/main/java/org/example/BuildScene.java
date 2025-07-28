@@ -104,9 +104,9 @@ public class BuildScene {
                     int port = 5000 + rank;
                     isWorkerDone[rank] = false;
 
-                    int rangeSize = height / workerCount;
-                    int rangeStart = rank * rangeSize;
-                    int rangeEnd = rangeStart + rangeSize + 100;
+                    int rangeSize = (height-275) / workerCount;
+                    int rangeStart = (4-rank) * rangeSize; // (height-275)-rank*rangeSize
+                    int rangeEnd = rangeStart - rangeSize;
 
                     ArrayList<particle> sublist = list.get(rank);
                     WorkerData data = new WorkerData(rangeStart, rangeEnd, sublist, mode);
@@ -260,6 +260,8 @@ public class BuildScene {
     private void resizeCanvas(double width, double height) {
         drawingCanvas.setWidth(width);
         drawingCanvas.setHeight(height);
+        System.out.println("Actual Canvas Size: " + drawingCanvas.getWidth() + "x" + drawingCanvas.getHeight());
+
     }
 
     private void showAlert() {

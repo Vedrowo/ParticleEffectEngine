@@ -46,7 +46,7 @@
          <Font name="Arial Bold" size="12.0"/>
       </font>
    </Label>
-   <TextField fx:id="yField" layoutX="148.0" layoutY="34.0" prefHeight="15.0" prefWidth="58.0" text="280"
+   <TextField fx:id="yField" layoutX="148.0" layoutY="34.0" prefHeight="15.0" prefWidth="58.0" text="320"
               AnchorPane.leftAnchor="148.0" AnchorPane.topAnchor="34.4"/>
    <Label layoutX="154.0" layoutY="14.0" text="EmitterY" textFill="WHITE" AnchorPane.leftAnchor="154.0"
           AnchorPane.topAnchor="14.4">

@@ -3,9 +3,7 @@ package org.example;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
 
 public class WorkerListener implements Runnable {
     private final ArrayList<particle> particles;
@@ -30,7 +28,7 @@ public class WorkerListener implements Runnable {
                 @SuppressWarnings("unchecked")
                 WorkerResponse response = (WorkerResponse) in.readObject();
                 ArrayList<particle> updatedParticles = response.particles;
-                ArrayList<particle> adioParticles = response.adioParticles;
+                ArrayList<particle> sayonaraParticles = response.sayonaraParticles;
 
                 synchronized (particles) {
                     particles.clear();
@@ -46,13 +44,13 @@ public class WorkerListener implements Runnable {
                     }
                     isWorkerDone[rank] = allDead;
                 }
-                if(!adioParticles.isEmpty() && (rank + 1) < outStream.length) {
+                if(!sayonaraParticles.isEmpty() && (rank + 1) < outStream.length) {
                     try{
                         synchronized (outStream[rank+1]) {
                             outStream[rank+1].reset();
-                            outStream[rank+1].writeObject(new WorkerResponse(null, adioParticles));
+                            outStream[rank+1].writeObject(new WorkerResponse(null, sayonaraParticles));
                             outStream[rank+1].flush();
-                            System.out.println("Worker listener " +rank+ " sent " + adioParticles.size() + " adio particles to worker"+(rank+1));
+                            System.out.println("Worker fella " +rank+ " yeeted " + sayonaraParticles.size() + " particles to worker "+(rank+1));
                         }
                     } catch (Exception e){
                         System.err.println("Failed to forward particles to worker " + (rank+1) + ": " + e.getMessage());

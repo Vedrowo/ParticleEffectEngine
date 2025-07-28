@@ -69,7 +69,6 @@ public class particleEngineUtil {
 
     public static void updateParticlesDistributed(Map<Point, ConcurrentLinkedQueue<particle>> map, ArrayList<particle> particles) {
         for (particle p : particles) {
-            
             p.mergedThisFrame = false;
             p.movement();
             if (p.age > 0.8) {

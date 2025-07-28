@@ -28,7 +28,7 @@ public class Worker {
 
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Worker listening on port " + port);
+            System.out.println("Worker bing shilling on port " + port);
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -55,7 +55,7 @@ public class Worker {
                             Object incoming = in.readObject();
                             System.out.println("Listening");
                             if (incoming instanceof WorkerResponse resp) {
-                                ArrayList<particle> newParticles = resp.adioParticles;
+                                ArrayList<particle> newParticles = resp.sayonaraParticles;
                                 if (newParticles != null && !newParticles.isEmpty()) {
                                     synchronized (particles) {
                                         particles.addAll(newParticles);
@@ -103,8 +103,7 @@ public class Worker {
                     ArrayList<particle> adioParticles = new ArrayList<>();
 
                     for (particle p : particles) {
-                        if (p.y > rangeEnd && workerID < 3) {
-                            System.out.println("particles left boundary");
+                        if (p.y < rangeEnd && workerID < 3) {
                             adioParticles.add(p);
                         }
                     }
