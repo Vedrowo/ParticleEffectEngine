@@ -1,7 +1,6 @@
 package org.example;
 
 import javafx.animation.AnimationTimer;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -12,8 +11,6 @@ import javafx.stage.Stage;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class BuildScene {
 
@@ -30,11 +27,15 @@ public class BuildScene {
     private Canvas drawingCanvas;
     @FXML
     private AnchorPane canvas;
-
+    @FXML
+    private Label fpsLabel;
     private Stage stage;
-
     private volatile boolean[] isWorkerDone;
     private static final int workerCount = 4;
+    private long lastFpsUpdate = 0;
+    private int frames = 0;
+    private int fps = 0;
+
 
     public void bindWindowSizeToFields(Stage stage) {
         this.stage = stage;
@@ -190,6 +191,14 @@ public class BuildScene {
                         clearCanvas(gc);
                         boolean drawn = engine.updateParticles();
 
+                        frames++;
+                        if (now - lastFpsUpdate >= 1_000_000_000) { // 1 second in nanoseconds
+                            fps = frames;
+                            frames = 0;
+                            lastFpsUpdate = now;
+                            fpsLabel.setText("FPS: " + fps);
+                        }
+
                         if (!drawn) {
                             long end = System.nanoTime();
                             long elapsedNanos = end - startTime;
@@ -208,6 +217,14 @@ public class BuildScene {
                     public void handle(long now) {
                         clearCanvas(gc);
                         boolean drawn = engine.updateParticlesParallel();
+
+                        frames++;
+                        if (now - lastFpsUpdate >= 1_000_000_000) {
+                            fps = frames;
+                            frames = 0;
+                            lastFpsUpdate = now;
+                            fpsLabel.setText("FPS: " + fps);
+                        }
 
                         if (!drawn) {
                             long end = System.nanoTime();
@@ -232,6 +249,14 @@ public class BuildScene {
                                 allDone = false;
                                 break;
                             }
+                        }
+
+                        frames++;
+                        if (now - lastFpsUpdate >= 1_000_000_000) { // 1 second in nanoseconds
+                            fps = frames;
+                            frames = 0;
+                            lastFpsUpdate = now;
+                            fpsLabel.setText("FPS: " + fps);
                         }
 
                         if (allDone) {

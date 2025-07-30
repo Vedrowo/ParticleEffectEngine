@@ -75,6 +75,12 @@
          <Font name="Arial Bold" size="12.0"/>
       </font>
    </Label>
+   <Label fx:id="fpsLabel" layoutX="15.0" layoutY="535" text="FPS:" textFill="WHITE"
+          AnchorPane.bottomAnchor="42.8" AnchorPane.leftAnchor="15.0">
+      <font>
+         <Font name="Arial Bold" size="12.0"/>
+      </font>
+   </Label>
    <Label fx:id="runtime" layoutX="15.0" layoutY="519.0" text="Run-time:" textFill="WHITE"
           AnchorPane.bottomAnchor="58.8" AnchorPane.leftAnchor="15.0">
       <font>

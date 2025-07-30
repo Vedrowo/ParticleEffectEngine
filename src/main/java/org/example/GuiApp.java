@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GuiApp extends Application {
-
     @Override
     public void start(Stage primaryStage) throws IOException {
         MyStage.setup(primaryStage);
