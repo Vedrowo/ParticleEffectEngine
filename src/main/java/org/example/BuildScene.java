@@ -103,7 +103,6 @@ public class BuildScene {
                 isWorkerDone = new boolean[workerCount];
                 ObjectOutputStream[] outArray = new ObjectOutputStream[workerCount];
 
-                // reverse loop to avoid worker 1 chucking particles at non-existent workers
                 for (int rank = workerCount - 1; rank >= 0; rank--) {
                     int port = 5000 + rank;
                     isWorkerDone[rank] = false;
@@ -259,7 +258,7 @@ public class BuildScene {
                         }
 
                         frames++;
-                        if (now - lastFpsUpdate >= 1_000_000_000) { // 1 second in nanoseconds
+                        if (now - lastFpsUpdate >= 1_000_000_000) {
                             fps = frames;
                             frames = 0;
                             lastFpsUpdate = now;
@@ -319,26 +318,23 @@ public class BuildScene {
             int initialY,
             int initialNumParticles
     ) {
-        // Stop worker listeners gracefully
+
         for (WorkerListener listener : allListeners) {
             if (listener != null) {
-                listener.stopListening();  // You must implement this in WorkerListener
+                listener.stopListening();
             }
         }
 
-        // Interrupt listener threads to ensure they stop (optional, safer)
         for (Thread t : listenerThreads) {
             if (t != null && t.isAlive()) {
                 t.interrupt();
             }
         }
 
-        // Clear particles lists and reset done flags
         for (int i = 0; i < workerCount; i++) {
             isWorkerDone[i] = false;
         }
 
-        // Reset output streams for all workers
         for (ObjectOutputStream out : outStreams) {
             if (out != null) {
                 try {
@@ -350,8 +346,6 @@ public class BuildScene {
                 }
             }
         }
-
-        // Reset the engine with initial parameters
         engine.resetEngine(initialX, initialY, initialNumParticles);
     }
 

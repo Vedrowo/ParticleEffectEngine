@@ -107,7 +107,6 @@ public class Worker {
 
                 System.out.println("Worker " + workerID + " initialized with " + particles.size() + " particles.");
 
-                // simulation loop in another thread
                 Thread simulationThread = new Thread(() -> runSimulationLoop(out, mode));
                 simulationThread.setDaemon(true);
                 simulationThread.start();
@@ -174,35 +173,8 @@ public class Worker {
         }
     }
 
-    public void resetWorkerState(ObjectOutputStream out) {
-        simulationRunning = false; // stop current loops & schedulers safely
-
-        synchronized (particles) {
-            particles.clear();
-        }
-        synchronized (overtimeParticles) {
-            overtimeParticles.clear();
-        }
-        particleMap.clear();
-
-        // Reset streams caches to avoid stale object serialization
-        try {
-            synchronized (out) {
-                out.reset();
-            }
-        } catch (IOException e) {
-            System.err.println("Error resetting output stream: " + e.getMessage());
-        }
-
-        // Reset any other state if needed, e.g. rangeStart, rangeEnd, mode
-        rangeStart = 0;
-        rangeEnd = 0;
-        mode = null;
-    }
-
-
     public static void main(String[] args) {
-        int port = 5000; // default
+        int port = 5000;
         if (args.length > 0) {
             port = Integer.parseInt(args[0]);
         }
