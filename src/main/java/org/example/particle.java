@@ -77,6 +77,14 @@ public class particle implements Serializable {
         vx *= (1 - 0.01 * age);
         vy *= (1 - 0.01 * age);
 
+        // random flickers
+        vx += (Math.random() - 0.5) * 0.2;
+        vy += (Math.random() - 0.5) * 0.1;
+
+        // gravity
+        double convection = 0.001;
+        vy += convection;
+
         if (y > 1) {
             y += vy;
         }
@@ -87,7 +95,7 @@ public class particle implements Serializable {
 
         currentLifetime++;
 
-        size = (age < 0.2) ? size + 0.1 : size - 0.3;
+        size = (age < 0.3) ? size + 0.2 : size - 0.6;
         alpha = 1 * (1 - Math.pow(age, 2));
         getColorBasedOnLifetime(currentLifetime, lifetime, alpha);
     }

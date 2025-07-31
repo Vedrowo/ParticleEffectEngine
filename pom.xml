@@ -17,7 +17,7 @@
     </properties>
 
     <dependencies>
-        <!-- JavaFX modules -->
+
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -28,6 +28,7 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+
         <dependency>
             <groupId>mpj</groupId>
             <artifactId>mpj</artifactId>
@@ -35,23 +36,16 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/mpj.jar</systemPath>
         </dependency>
-
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
                 <configuration>
                     <mainClass>org.example.GuiApp</mainClass>
-                    <arguments>
-                        <argument>--module-path</argument>
-                        <argument>${java.home}/lib</argument>
-                        <argument>--add-modules</argument>
-                        <argument>javafx.controls,javafx.fxml</argument>
-                    </arguments>
                 </configuration>
             </plugin>
         </plugins>
