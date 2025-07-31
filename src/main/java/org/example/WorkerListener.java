@@ -11,6 +11,7 @@ public class WorkerListener implements Runnable {
     private final int port, rank;
     private final boolean[] isWorkerDone;
     private final ObjectOutputStream[] outStream;
+    private volatile boolean running = true;
 
     public WorkerListener(ArrayList<particle> particles, ObjectInputStream in, ObjectOutputStream[] outStream, int port, boolean[] isWorkerDone) {
         this.particles = particles;
@@ -24,7 +25,7 @@ public class WorkerListener implements Runnable {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (running) {
                 @SuppressWarnings("unchecked")
                 WorkerResponse response = (WorkerResponse) in.readObject();
                 ArrayList<particle> updatedParticles = response.particles;
@@ -60,6 +61,15 @@ public class WorkerListener implements Runnable {
 
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Error in WorkerListener for port " + port + ": " + e.getMessage());
+        }
+    }
+
+    public void stopListening() {
+        isWorkerDone[rank] = false;
+        try {
+            in.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

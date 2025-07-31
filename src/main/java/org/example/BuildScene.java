@@ -35,7 +35,9 @@ public class BuildScene {
     private long lastFpsUpdate = 0;
     private int frames = 0;
     private int fps = 0;
-
+    private WorkerListener[] allListeners = new WorkerListener[workerCount];
+    private Thread[] listenerThreads = new Thread[workerCount];
+    private ObjectOutputStream[] outArray = new ObjectOutputStream[workerCount];
 
     public void bindWindowSizeToFields(Stage stage) {
         this.stage = stage;
@@ -66,6 +68,7 @@ public class BuildScene {
 
     @FXML
     private void startSimulation() {
+        startButton.setDisable(true);
         try {
             long startTime = System.nanoTime();
 
@@ -124,9 +127,10 @@ public class BuildScene {
 
                         outArray[rank] = out;
 
-                        Thread listenerThread = new Thread(new WorkerListener(sublist, in, outArray, rank, isWorkerDone));
-                        listenerThread.setDaemon(true);
-                        listenerThread.start();
+                        allListeners[rank] = new WorkerListener(sublist, in, outArray, rank, isWorkerDone);
+                        listenerThreads[rank] = new Thread(allListeners[rank]);
+                        listenerThreads[rank].setDaemon(true);
+                        listenerThreads[rank].start();
 
                     } catch (IOException ex) {
                         System.err.println("Failed to connect/send to worker " + rank + " on port " + port);
@@ -204,6 +208,7 @@ public class BuildScene {
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
                             renderLoop.stop();
+                            startButton.setDisable(false);
                         }
 
                         engine.paint(gc, width-215, height-275);
@@ -231,6 +236,7 @@ public class BuildScene {
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
                             renderLoop.stop();
+                            startButton.setDisable(false);
                         }
                         
                         engine.paintParallel(gc, width-215, height-275);
@@ -264,6 +270,15 @@ public class BuildScene {
                             long elapsedNanos = end - startTime;
                             runtime.setText("Run time: " + elapsedNanos/1_000_000 + " ms");
                             renderLoop.stop();
+                            resetDistributedSimulation(allListeners,
+                                    listenerThreads,
+                                    outArray,
+                                    isWorkerDone,
+                                    engine,
+                                    Integer.parseInt(xField.getText()),
+                                    Integer.parseInt(yField.getText()),
+                                    Integer.parseInt(particleCountField.getText()));
+                            startButton.setDisable(false);
                         }
 
                         engine.paintDistributed(gc, width-215, height-275);
@@ -294,4 +309,52 @@ public class BuildScene {
         alert.setContentText("Please enter valid numbers.");
         alert.show();
     }
+
+    public void resetDistributedSimulation(
+            WorkerListener[] allListeners,
+            Thread[] listenerThreads,
+            ObjectOutputStream[] outStreams,
+            boolean[] isWorkerDone,
+            particleEngine engine,
+            int initialX,
+            int initialY,
+            int initialNumParticles
+    ) {
+        // Stop worker listeners gracefully
+        for (WorkerListener listener : allListeners) {
+            if (listener != null) {
+                listener.stopListening();  // You must implement this in WorkerListener
+            }
+        }
+
+        // Interrupt listener threads to ensure they stop (optional, safer)
+        for (Thread t : listenerThreads) {
+            if (t != null && t.isAlive()) {
+                t.interrupt();
+            }
+        }
+
+        // Clear particles lists and reset done flags
+        for (int i = 0; i < workerCount; i++) {
+            isWorkerDone[i] = false;
+        }
+
+        // Reset output streams for all workers
+        for (ObjectOutputStream out : outStreams) {
+            if (out != null) {
+                try {
+                    synchronized (out) {
+                        out.reset();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Reset the engine with initial parameters
+        engine.resetEngine(initialX, initialY, initialNumParticles);
+    }
+
+
 }
