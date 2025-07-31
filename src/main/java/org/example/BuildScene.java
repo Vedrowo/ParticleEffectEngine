@@ -122,6 +122,7 @@ public class BuildScene {
                         out.flush();
                         ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
+                        out.reset();
                         out.writeObject(data);
                         out.flush();
 
@@ -300,8 +301,6 @@ public class BuildScene {
     private void resizeCanvas(double width, double height) {
         drawingCanvas.setWidth(width);
         drawingCanvas.setHeight(height);
-        System.out.println("Actual Canvas Size: " + drawingCanvas.getWidth() + "x" + drawingCanvas.getHeight());
-
     }
 
     private void showAlert() {

@@ -41,7 +41,7 @@ public class Worker {
                 ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
                 out.flush();
 
-                Object obj = in.readObject();
+                Object obj = in.readUnshared();
 
                 if(obj instanceof WorkerData data){
                     this.rangeStart = data.rangeStart;
@@ -78,8 +78,8 @@ public class Worker {
                 Thread readerThread = new Thread(() -> {
                     try {
                         while (simulationRunning) {
-                            Object incoming = in.readObject();
-                            System.out.println("Listening");
+                            Object incoming = in.readUnshared();
+
                             if (incoming instanceof WorkerResponse resp) {
                                 ArrayList<particle> newParticles = resp.sayonaraParticles;
                                 if (newParticles != null && !newParticles.isEmpty()) {
@@ -149,7 +149,6 @@ public class Worker {
                         }
                     }
 
-                    // Send updated particles back to GUI
                     out.reset();
 
                     if(Objects.equals(mode, "Over time")){

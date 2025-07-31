@@ -27,7 +27,7 @@ public class WorkerListener implements Runnable {
         try {
             while (running) {
                 @SuppressWarnings("unchecked")
-                WorkerResponse response = (WorkerResponse) in.readObject();
+                WorkerResponse response = (WorkerResponse) in.readUnshared();
                 ArrayList<particle> updatedParticles = response.particles;
                 ArrayList<particle> sayonaraParticles = response.sayonaraParticles;
 

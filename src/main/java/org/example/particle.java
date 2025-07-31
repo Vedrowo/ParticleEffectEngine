@@ -77,10 +77,6 @@ public class particle implements Serializable {
         vx *= (1 - 0.01 * age);
         vy *= (1 - 0.01 * age);
 
-        // random flickers
-        vx += (Math.random() - 0.5) * 0.2;
-        vy += (Math.random() - 0.5) * 0.1;
-
         // gravity
         double convection = 0.001;
         vy += convection;
